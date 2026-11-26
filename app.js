@@ -28,6 +28,9 @@
            · 입력값은 state.calc로 localStorage 저장(다시 열어도 유지) · 탄수 50g 하한선 보호
    v2.5.2: 계산기를 가이드 탭에서 기록 탭 맨 위로 이동 — 가이드 'calc' 칩·블록 제거(칩 5개)
            · 저장된 guideCat='calc'는 'all'로 폴백 · renderTab('log')에서 renderCalc() 호출
+   v2.5.5: 무료 방문 카운터 — 앱을 열면 이 기기 기준 하루 1회 누적(total)·오늘(d-YYYYMMDD) +1
+           · 숫자는 관리자만 — [설정] 맨 아래 버전 5번 탭 또는 ?stats=1 로 '오늘 접속 / 누적 접속' 카드
+           · 회원가입 없는 무료 REST 카운터(abacus.jasoncameron.dev) · 실패해도 앱은 그대로, 마지막 값 유지
    v2.5.3: 설정 탭 근무 배지 색깔 커스텀 — 주·오·야·휴 4종 각각 7색 원탭 + '기본값' 초기화
            · state.badgeColors(localStorage) · html의 --d/--a/--n/--o(+rgb)를 덮어써서
              달력·전체 조·오늘 카드·근무표 PNG까지 실시간 반영 · 화이트 테마는 진한 톤으로 자동 교체
@@ -2818,6 +2821,33 @@
       openSetup();
     });
 
+    /* 방문 통계 (v2.5.5) — [설정] 맨 아래 버전 5번 탭으로만 열린다 */
+    var verEl = $('appVer');
+    if (verEl) verEl.addEventListener('click', function () {
+      verTaps++;
+      clearTimeout(verTapTimer);
+      verTapTimer = setTimeout(function () { verTaps = 0; }, 2500);
+      if (verTaps >= 5) {
+        verTaps = 0;
+        clearTimeout(verTapTimer);
+        showStats(true);
+        toast('방문 통계');
+      }
+    });
+    var stRef = $('btnStatsRefresh');
+    if (stRef) stRef.addEventListener('click', function () {
+      stRef.disabled = true;
+      refreshStats().then(function (ok) {
+        stRef.disabled = false;
+        toast(ok ? '숫자를 새로 받았습니다' : '서버에 연결하지 못했습니다');
+      });
+    });
+    var stHide = $('btnStatsHide');
+    if (stHide) stHide.addEventListener('click', function () {
+      hideStats();
+      toast('통계를 숨겼습니다');
+    });
+
     /* 검색 실행 — 검색 버튼 클릭 · Enter · 한글 조합 완료에서 공통으로 부른다 */
     function coSearch(scope, hideKeyboard) {
       var s = coState[scope];
@@ -2930,6 +2960,142 @@
     }
   }
 
+  /* =================================================================
+     방문 카운터 (v2.5.5) — 회원가입 없는 무료 REST 카운터
+     api  : https://abacus.jasoncameron.dev  (GET /hit/{ns}/{key} = +1 · GET /get/{ns}/{key} = 읽기)
+     셈  : 앱을 열 때 이 기기에서 하루 1회만 +1 (localStorage lastDay 로 중복 방지)
+     보기 : [설정] 맨 아래 버전 5번 탭 또는 ?stats=1 — 일반 화면에는 숫자가 안 보인다
+     실패 : 서버·오프라인이면 조용히 넘어가고 마지막으로 받은 숫자를 그대로 보여준다
+     ================================================================= */
+  var STATS_API = 'https://abacus.jasoncameron.dev';
+  var STATS_NS = 'kingyongko-shift';
+  var STATS_LS = 'kingyongko_shift_hits_v1';
+  var statsShown = false;       /* 버전 5번 탭으로 켠 상태 */
+  var verTaps = 0, verTapTimer = null;
+
+  function statsLoad() {
+    try {
+      var o = JSON.parse(localStorage.getItem(STATS_LS) || '{}');
+      return (o && typeof o === 'object') ? o : {};
+    } catch (e) { return {}; }
+  }
+  function statsStore(o) {
+    try { localStorage.setItem(STATS_LS, JSON.stringify(o)); } catch (e) { }
+  }
+  function statsDayKey(iso) { return 'd-' + String(iso).replace(/-/g, ''); }
+  function statsRead(key) {
+    return fetch(STATS_API + '/get/' + STATS_NS + '/' + key, { cache: 'no-store' })
+      .then(function (r) {
+        if (r.status === 404) return 0;          /* 아직 한 번도 안 셈 */
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var v = Number(j && j.value);
+        if (!isFinite(v)) throw new Error('bad value');
+        return v;
+      });
+  }
+  function statsHit(key) {
+    return fetch(STATS_API + '/hit/' + STATS_NS + '/' + key, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var v = Number(j && j.value);
+        if (!isFinite(v)) throw new Error('bad value');
+        return v;
+      });
+  }
+  function statsWhen(ts) {
+    var d = new Date(ts);
+    return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function statsWanted() {
+    if (statsShown) return true;
+    try { return /[?&]stats=1(?:[&#]|$)/.test(location.search || ''); } catch (e) { return false; }
+  }
+
+  /* 앱 접속 1회 집계 — 오늘 이미 셌으면 아무것도 하지 않는다 */
+  function trackVisit() {
+    var d = todayISO(), st = statsLoad();
+    if (st.lastDay === d) return;
+    statsHit('total').then(function (v) {
+      st.total = v; st.at = Date.now();
+      return statsHit(statsDayKey(d)).then(function (v2) {
+        st.today = v2; st.day = d; st.lastDay = d; st.at = Date.now();
+        statsStore(st);
+        if (statsWanted()) renderStats();
+      }, function () {
+        st.lastDay = d; st.day = d; statsStore(st);   /* 누적은 셌으니 오늘 중복은 막는다 */
+        if (statsWanted()) renderStats();
+      });
+    }).catch(function () { /* 오프라인·서버 오류 — 다음 접속 때 다시 시도 */ });
+  }
+
+  function renderStats() {
+    var grid = $('statsGrid'), meta = $('statsMeta');
+    if (!grid || !meta) return;
+    var d = todayISO(), st = statsLoad();
+    var today = (st.day === d) ? st.today : null;
+    grid.innerHTML =
+      stat(today == null ? '–' : today, '회', '오늘 접속', 'y') +
+      stat(st.total == null ? '–' : st.total, '회', '누적 접속', 'g');
+    meta.innerHTML =
+      (st.at ? '마지막 집계 ' + statsWhen(st.at) : '아직 집계 전') +
+      ' · 이 기기에서 하루 한 번만 셉니다<br>' +
+      '<span style="color:var(--faint)">무료 서버 카운터(abacus) · 기기 기준이라 방문자 수와는 조금 다릅니다</span>';
+  }
+
+  /* 서버에서 최신 숫자만 다시 읽기 (증가 없음) */
+  function refreshStats() {
+    var d = todayISO(), st = statsLoad();
+    return Promise.all([
+      statsRead('total').catch(function () { return null; }),
+      statsRead(statsDayKey(d)).catch(function () { return null; })
+    ]).then(function (v) {
+      var got = false;
+      if (v[0] != null) { st.total = v[0]; got = true; }
+      if (v[1] != null) { st.today = v[1]; st.day = d; got = true; }
+      if (got) st.at = Date.now();
+      statsStore(st);
+      renderStats();
+      return got;
+    });
+  }
+
+  function showStats(scroll) {
+    var wrap = $('statsWrap');
+    if (!wrap) return;
+    statsShown = true;
+    wrap.hidden = false;
+    renderStats();
+    refreshStats().then(function (ok) {
+      var meta = $('statsMeta');
+      if (!ok && meta) meta.insertAdjacentHTML('beforeend',
+        '<br><b style="color:var(--d)">지금은 서버에 연결하지 못했습니다 — 마지막으로 받은 숫자입니다</b>');
+    });
+    if (scroll) setTimeout(function () {
+      try { wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+    }, 150);
+  }
+
+  function hideStats() {
+    var wrap = $('statsWrap');
+    statsShown = false;
+    if (wrap) wrap.hidden = true;
+  }
+
+  function initStats() {
+    trackVisit();                       /* 하루 1회 집계 — 실패해도 조용히 */
+    if (!statsWanted()) return;
+    var byUrl = false;
+    try { byUrl = /[?&]stats=1(?:[&#]|$)/.test(location.search || ''); } catch (e) { }
+    if (byUrl) switchTab('settings');   /* ?stats=1 이면 설정 탭의 통계 카드로 바로 */
+    showStats(byUrl);
+  }
+
   /* ---------------- 시작 ---------------- */
   function boot() {
     if (!state.anchor) state.anchor = todayISO();
@@ -2943,6 +3109,7 @@
     renderSettings();
     renderCalc();
     setupPWA();
+    initStats();
     if (!state.setupDone) openSetup();
     /* 1분마다 근무 상태 갱신, 날짜가 바뀌면 전체 렌더 */
     var lastDay = todayISO();

@@ -1227,3 +1227,15 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 .calc-note{margin-top:10px;padding:9px 10px;border-radius:10px;background:rgba(var(--hol-rgb),.08);border-left:2px solid var(--hol);font-size:11px;line-height:1.55;color:var(--txt2)}
 .calc-note b{color:var(--txt-strong);font-weight:800}
 .calc-card .help{margin-top:11px}
+
+/* ---------- 설정: 방문 통계 (v2.5.5) — 버전 5번 탭 또는 ?stats=1 에서만 열린다 ---------- */
+.stats-card{padding:14px}
+.stats-meta{margin-top:11px;font-size:10.5px;font-weight:600;color:var(--muted);line-height:1.6}
+.stats-meta b{font-weight:800}
+.stats-acts{display:flex;gap:7px;margin-top:12px}
+.stats-b{
+  flex:1 1 0;padding:10px 8px;border:1px solid var(--line);border-radius:11px;
+  background:var(--card2);color:var(--txt);font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;
+}
+.stats-b:active{opacity:.6}
+.stats-b:disabled{opacity:.45}
