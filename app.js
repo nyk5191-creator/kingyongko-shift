@@ -26,6 +26,8 @@
    v2.5.0: 가이드 칩 6개 — 🏃 러닝(run) / 🩺 건강·수면(health) 분리 · 🧮 칼로리 계산기(calc) 신설
            · 계산기: 성별·몸무게·활동량·목표 → 목표칼로리·단백질·지방·탄수 + 닭가슴살/햇반 환산 한 줄
            · 입력값은 state.calc로 localStorage 저장(다시 열어도 유지) · 탄수 50g 하한선 보호
+   v2.5.2: 계산기를 가이드 탭에서 기록 탭 맨 위로 이동 — 가이드 'calc' 칩·블록 제거(칩 5개)
+           · 저장된 guideCat='calc'는 'all'로 폴백 · renderTab('log')에서 renderCalc() 호출
    =================================================================== */
 (function () {
   'use strict';
@@ -55,7 +57,7 @@
   ];
 
   /* 가이드 카테고리 칩 (v2.5) — index.html의 #gcatChips / .gblock[data-cat]과 짝 */
-  var GCATS = ['all', 'ebook', 'qa', 'run', 'health', 'calc'];
+  var GCATS = ['all', 'ebook', 'qa', 'run', 'health'];
 
   /* 탄단지·칼로리 계산기 (v2.5) — 기본값과 계수.
      유지칼로리 = 체중 × kcal/kg(성별·활동량) · 목표 = 유지 + 감량(-400)/유지(0)/증량(+250)
@@ -629,7 +631,7 @@
     groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
     theme: 'dark',
     coachOpen: false,
-    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run/health/calc */
+    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run/health (v2.5.2: calc 제거) */
     calc: { sex: 'm', weight: 75, act: 'shift', goal: 'keep' },   /* v2.5 탄단지·칼로리 계산기 입력값 */
     payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
@@ -2088,7 +2090,7 @@
   function renderTab(name) {
     if (name === 'today') renderToday();
     else if (name === 'calendar') renderCal();
-    else if (name === 'log') renderLog();
+    else if (name === 'log') { renderLog(); renderCalc(); }   /* v2.5.2 — 계산기는 기록 탭 맨 위 */
     else if (name === 'settings') renderSettings();
     else if (name === 'guide') { applyGuideCat(state.guideCat, { persist: false }); renderCalc(); }
   }
