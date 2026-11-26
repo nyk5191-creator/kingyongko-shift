@@ -24,7 +24,7 @@
 .co-ask-row{display:flex;gap:6px;align-items:stretch}
 .co-ask-b{flex:1 1 0;display:block;padding:9px 7px;border:1px solid #2A2A30;border-radius:11px;background:#1C1C21;color:#EEE;text-decoration:none;text-align:center;font-size:11px;line-height:1.35}
 </style>
-<link rel="stylesheet" href="app.css?v=2.2.2">
+<link rel="stylesheet" href="app.css?v=2.3.0">
 <script>
 /* 저장해둔 화면 테마를 첫 그림 전에 적용 (흰 화면 깜빡임 방지) */
 (function () {
@@ -127,13 +127,14 @@
         </div>
       </div>
 
-      <div class="foot-note">교대핏 v2.2.2 · 기록은 이 기기에만 저장됩니다</div>
+      <div class="foot-note">교대핏 v2.3.0 · 기록은 이 기기에만 저장됩니다</div>
     </section>
 
     <!-- ============ 달력 (첫 화면) ============ -->
     <section class="tab is-active" id="tab-calendar">
       <div class="datebar cal-bar">
         <div class="d2">날짜를 누르면 근무 변경·일정·기록을 고칩니다</div>
+        <button class="cal-img-btn" id="btnCalImage" type="button">📷 이미지 저장</button>
       </div>
 
       <!-- 오늘 바 — 한 줄로 오늘 근무 + 오운완·식단 원탭 -->
@@ -165,6 +166,7 @@
             <span class="lg"><i class="pt w"></i>체중</span>
             <span class="lg"><i class="pt r"></i>러닝</span>
             <span class="lg"><i class="pt t"></i>대근·일정</span>
+            <span class="lg"><i class="pt p"></i>월급날</span>
           </div>
           <div class="cal-note">빨간 날짜 = 법정공휴일 (2026~2027 · 대체공휴일 포함). 임시공휴일은 반영되지 않습니다. 날짜 칸의 <b>대근·특근·연차·교육</b>은 그날 근무 변경 태그입니다.</div>
         </div>
@@ -184,6 +186,7 @@
 
       <div class="sec-head"><span>이 달 요약</span><span class="sub" id="calHolSub"></span></div>
       <div class="stat-grid" id="calStats"></div>
+      <div class="card settle-card" id="calSettle"></div>
     </section>
 
     <!-- ============ 기록 ============ -->
@@ -450,7 +453,7 @@
         <span class="cta-ar">↗</span>
       </a>
 
-      <div class="foot-note">교대핏 v2.2.2 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.3.0 · 킹용코</div>
     </section>
 
     <!-- ============ 설정 ============ -->
@@ -547,6 +550,15 @@
         <div class="help">회사 시간표에 맞게 고치세요. 야간은 자정을 넘겨도 됩니다. (기본값: 4조 2교대 기준)</div>
       </div>
 
+      <div class="sec-head"><span>월급날</span><span class="sub">달력에 표시</span></div>
+      <div class="card">
+        <div class="field">
+          <label>매월 며칠 <i>기본 25일</i></label>
+          <select class="input" id="paydaySelect"></select>
+        </div>
+        <div class="help">고른 날은 달력 칸에 초록 <b>월급</b> 배지로 뜨고, 이 달 요약에 <b>월급 D-N</b>이 나옵니다. 30일·31일처럼 없는 달은 말일로 맞춥니다.</div>
+      </div>
+
       <div class="sec-head"><span>앱 · 데이터</span></div>
       <div class="card">
         <button class="row-btn" id="btnInstallGuide">홈 화면에 추가하는 법 보기</button>
@@ -556,7 +568,7 @@
         <div class="help">기록은 이 브라우저(localStorage)에만 저장됩니다. 백업 없이 브라우저 데이터를 지우면 기록도 사라집니다.</div>
       </div>
 
-      <div class="foot-note">교대핏 v2.2.2 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.3.0 · 킹용코</div>
     </section>
   </main>
 
@@ -687,6 +699,29 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=2.2.2"></script>
+<!-- 근무표 이미지 미리보기 (v2.3) -->
+<div class="sheet-wrap" id="imgWrap">
+  <div class="sheet-backdrop" data-close="1"></div>
+  <div class="sheet img-sheet" role="dialog" aria-modal="true" aria-label="근무표 이미지">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-date" id="imgTitle">근무표 이미지</div>
+        <div class="sheet-sub" id="imgSub">길게 눌러 사진 저장 · 카톡으로 보내기</div>
+      </div>
+      <button class="sheet-x" data-close="1" aria-label="닫기">✕</button>
+    </div>
+    <div class="img-body">
+      <img id="imgPreview" alt="근무표 이미지 미리보기">
+    </div>
+    <div class="img-foot">
+      <button class="btn-ghost" id="imgShare" hidden>공유</button>
+      <button class="btn-ghost" id="imgClose">닫기</button>
+      <a class="btn-primary" id="imgDownload" href="#" download="교대핏_근무표.png">이미지 저장</a>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=2.3.0"></script>
 </body>
 </html>

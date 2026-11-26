@@ -1,5 +1,5 @@
 /* ===================================================================
-   교대핏 v2.2.2 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.3.0 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
@@ -11,13 +11,17 @@
    v2.2.2: 캐시버스트(app.css?v=2.2.2) + 서비스워커 네트워크 우선 → 구버전 CSS/JS 섞임 차단
            · 검색창 옆 [검색] 버튼(클릭·Enter·한글 compositionend 모두) 
            · 회사 목록을 검색어 없이도 ㄱㄴㄷ순 전체로 바로 노출(스크롤)
+   v2.3: 월급날(설정 1~31일·말일·없음 · 달력 칸 초록 '월급' 배지 · 월급 D-N)
+         · 이달 근태 정산 — 대근·특근·연차·교육 횟수 + 예정 근무시간
+         · 근무표 이미지 저장 — 현재 보는 달(내 달력/전체 조)을 1080px PNG로
+           (공유 시트 → 없으면 다운로드 + 미리보기 모달)
    =================================================================== */
 (function () {
   'use strict';
 
   /* ---------------- 상수 ---------------- */
   var LS_KEY = 'kingyongko_shift_v1';
-  var STATE_V = 4;
+  var STATE_V = 5;
   var PARTS = ['가슴', '등', '어깨', '하체', '팔', '복근', '유산소'];
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var ABC = ['A', 'B', 'C', 'D', 'E'];
@@ -522,6 +526,71 @@
   /* 화면에 읽히는 근무 이름 — 휴무까지 '휴무'로 통일 */
   function pickName(code) { return (SHIFT[code] || SHIFT.O).name; }
 
+  /* ---------------- 월급날 (v2.3) ---------------- */
+  function monthLastDay(y, m) { return new Date(y, m, 0).getDate(); }
+
+  /* 그 달의 월급날(1~31) — 없으면 0. 31일처럼 없는 달은 말일로 당긴다 */
+  function paydayDay(y, m) {
+    var p = state.payday;
+    if (p === 0 || p === null || p === undefined) return 0;
+    var last = monthLastDay(y, m);
+    if (p === 'last') return last;
+    var n = Math.round(Number(p) || 0);
+    if (n < 1) return 0;
+    return Math.min(n, last);
+  }
+  function paydayISOOf(y, m) {
+    var d = paydayDay(y, m);
+    return d ? (y + '-' + pad(m) + '-' + pad(d)) : '';
+  }
+  /* 오늘 이후 가장 가까운 월급날 (오늘이 월급날이면 오늘) */
+  function nextPaydayISO(fromISO) {
+    var from = fromISO || todayISO();
+    var d = parseISO(from);
+    var y = d.getFullYear(), m = d.getMonth() + 1;
+    for (var i = 0; i < 24; i++) {
+      var iso = paydayISOOf(y, m);
+      if (iso && dayDiff(from, iso) >= 0) return iso;
+      m++; if (m > 12) { m = 1; y++; }
+    }
+    return '';
+  }
+  function ddayText(iso) {
+    if (!iso) return '';
+    var n = dayDiff(todayISO(), iso);
+    return n === 0 ? '오늘' : (n > 0 ? 'D-' + n : 'D+' + (-n));
+  }
+
+  /* ---------------- 근무 시간·월간 정산 (v2.3) ---------------- */
+  function hmMin(hm) {
+    var p = String(hm || '').split(':').map(Number);
+    return (p[0] || 0) * 60 + (p[1] || 0);
+  }
+  /* 한 근무의 길이(시간) — 야간처럼 자정을 넘기면 24시간을 더한다 */
+  function shiftHours(code) {
+    var t = state.times && state.times[code];
+    if (!t) return 0;
+    var s = hmMin(t[0]), e = hmMin(t[1]);
+    if (e <= s) e += 1440;
+    return (e - s) / 60;
+  }
+  /* 한 달 정산 — 출근·휴무 일수, 근무 변경 태그 횟수, 예정 근무시간 */
+  function monthSettle(y, m, lastDay) {
+    var out = { work: 0, off: 0, hours: 0, tags: {} };
+    DAY_TAGS.forEach(function (t) { out.tags[t] = 0; });
+    for (var day = 1; day <= lastDay; day++) {
+      var iso = y + '-' + pad(m) + '-' + pad(day);
+      var code = myShift(iso);
+      if (code === 'O') out.off++;
+      else { out.work++; out.hours += shiftHours(code); }
+      var lg = state.logs[iso];
+      var tags = (lg && Array.isArray(lg.tags)) ? lg.tags : [];
+      tags.forEach(function (t) { if (out.tags[t] != null) out.tags[t]++; });
+    }
+    out.hours = Math.round(out.hours * 10) / 10;
+    return out;
+  }
+
   /* ---------------- 상태 ---------------- */
   var DEFAULTS = {
     v: STATE_V,
@@ -533,6 +602,7 @@
     groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
     theme: 'dark',
     coachOpen: false,
+    payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
     logs: {},
@@ -556,6 +626,15 @@
       groupOrder: /^[A-E]{2,5}$/.test(String(s.groupOrder || '')) ? s.groupOrder : DEFAULTS.groupOrder,
       theme: ['dark', 'light', 'navy'].indexOf(s.theme) >= 0 ? s.theme : DEFAULTS.theme,
       coachOpen: s.coachOpen === true,
+      payday: (function () {
+        var p = s.payday;
+        if (p === undefined || p === null) return DEFAULTS.payday;
+        if (p === 'last') return 'last';
+        var n = Math.round(Number(p));
+        if (!isFinite(n) || n < 0) return DEFAULTS.payday;
+        if (n === 0) return 0;
+        return Math.min(31, Math.max(1, n));
+      })(),
       anchor: s.anchor || todayISO(),
       times: Object.assign({}, DEFAULTS.times, s.times || {}),
       logs: (s.logs && typeof s.logs === 'object') ? s.logs : {},
@@ -993,22 +1072,45 @@
     else renderCalMonth(y, m, lastDay);
 
     /* 이 달 요약 */
-    var cnt = { w: 0, c: 0, d: 0, o: 0, h: 0 };
+    var cnt = { w: 0, c: 0, h: 0 };
     for (var dd = 1; dd <= lastDay; dd++) {
       var is2 = y + '-' + pad(m + 1) + '-' + pad(dd);
-      var c2 = myShift(is2);
-      if (c2 === 'O') cnt.o++; else cnt.d++;
       if (holOf(is2)) cnt.h++;
       var l2 = state.logs[is2];
       if (l2 && l2.workout) cnt.w++;
       if (l2 && l2.clean) cnt.c++;
     }
+    var settle = monthSettle(y, m + 1, lastDay);
     $('calHolSub').textContent = cnt.h ? '공휴일 ' + cnt.h + '일' : '';
     $('calStats').innerHTML =
       stat(cnt.w, '일', '오운완', 'y') +
       stat(cnt.c, '일', '식단 클린', 'g') +
-      stat(cnt.d, '일', '출근일', 'd') +
-      stat(cnt.o, '일', '휴무일', '');
+      stat(settle.work, '일', '출근일', 'd') +
+      stat(settle.off, '일', '휴무일', '');
+    renderSettleCard(m + 1, settle);
+  }
+
+  /* 이달 근태 정산 — 대근·특근·연차·교육 + 예정 근무시간 + 월급 D-N */
+  function renderSettleCard(month, settle) {
+    var box = $('calSettle');
+    if (!box) return;
+    var cells = DAY_TAGS.map(function (t) {
+      return '<div class="sk"><b>' + settle.tags[t] + '</b><i>' + t + '</i></div>';
+    }).join('');
+    var pay = '';
+    var payIso = nextPaydayISO(todayISO());
+    if (payIso) {
+      var pd = parseISO(payIso);
+      pay = '<span class="st-pay"><b>💰 월급날 ' + (pd.getMonth() + 1) + '월 ' + pd.getDate() + '일</b>' +
+        '<i>' + ddayText(payIso) + '</i></span>';
+    }
+    box.innerHTML =
+      '<div class="sk-head"><b>이달 근태 정산</b><span>' + month + '월</span></div>' +
+      '<div class="sk-row">' + cells + '</div>' +
+      '<div class="sk-foot">' +
+        '<span class="sk-hours">예정 근무 <b>' + settle.hours + '</b><i>시간</i></span>' +
+        pay +
+      '</div>';
   }
 
   /* 내 달력 — 한 달 격자 */
@@ -1016,6 +1118,7 @@
     var first = new Date(y, m, 1);
     var startPad = first.getDay();
     var t = todayISO();
+    var payDay = paydayDay(y, m + 1);
     var html = '';
 
     for (var i = 0; i < startPad; i++) html += '<div class="cday pad"></div>';
@@ -1027,7 +1130,8 @@
       var hol = holOf(iso);
       var dow = new Date(y, m, day).getDay();
       var cls = 'cday' + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') +
-        (iso === t ? ' has-today' : '') + (hol ? ' hol' : '');
+        (iso === t ? ' has-today' : '') + (hol ? ' hol' : '') +
+        (payDay === day ? ' payday' : '');
       var dots = '';
       if (lg) {
         if (lg.workout) dots += '<i class="pt y"></i>';
@@ -1042,10 +1146,12 @@
       if (tags.length) mark = '<span class="ctag">' + esc(tags[0]) + (tags.length > 1 ? '+' + (tags.length - 1) : '') + '</span>';
       else if (sched) mark = '<span class="ctag m">' + esc(sched.slice(0, 5)) + '</span>';
       else if (hol) mark = '<span class="hn">' + esc(hol[0]) + '</span>';
+      /* 월급날 — 태그·공휴일 이름이 없을 때 그 자리에 초록 '월급' */
+      var payMark = (payDay === day && !tags.length && !sched) ? '<span class="ctag pay">월급</span>' : '';
       html += '<button class="' + cls + '" data-date="' + iso + '">' +
         '<span class="n">' + day + '</span>' +
         '<span class="bb ' + meta.cls + '">' + meta.short + '</span>' +
-        mark +
+        (payMark || mark) +
         '<span class="dots">' + dots + '</span>' +
         '</button>';
     }
@@ -1076,7 +1182,8 @@
         var hol0 = holOf(iso0);
         var dw = (firstDow + dayNum - 1) % 7;
         html += '<span class="wk-h' + (dw === 0 ? ' sun' : dw === 6 ? ' sat' : '') +
-          (hol0 ? ' hol' : '') + (iso0 === t ? ' today' : '') + '">' +
+          (hol0 ? ' hol' : '') + (iso0 === t ? ' today' : '') +
+          (dayNum === paydayDay(y, m + 1) ? ' pay' : '') + '">' +
           '<i>' + DOW[dw] + '</i><b>' + dayNum + '</b></span>';
       }
       html += '</div>';
@@ -1107,6 +1214,363 @@
   function stat(v, unit, label, cls) {
     return '<div class="stat ' + (cls || '') + '"><div class="sv">' + v + '<small>' + unit + '</small></div>' +
       '<div class="sl">' + label + '</div></div>';
+  }
+
+  /* =================================================================
+     근무표 이미지 저장 (v2.3) — 현재 보는 달을 1080px PNG 한 장으로
+     내 달력 = 한 달 격자, 전체 조 = 주별 조 비교표
+     ================================================================= */
+  var IMG_W = 1080;
+  var IMG_FONT = '"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif';
+  var imgURL = null;
+
+  function imgPalette() {
+    return {
+      bg: cssVar('--bg', '#0D0D0F'),
+      card: cssVar('--card', '#17171B'),
+      line: cssVar('--line', '#26262C'),
+      txt: cssVar('--txt', '#F3F3F5'),
+      txt2: cssVar('--txt2', '#B4B4BD'),
+      muted: cssVar('--muted', '#7E7E89'),
+      faint: cssVar('--faint', '#5F5F69'),
+      gold: cssVar('--yellow', '#FFD400'),
+      acc: cssVar('--accent-rgb', '255,212,0'),
+      hol: cssVar('--hol', '#FF6B6B'),
+      green: cssVar('--green', '#3DDC97'),
+      run: cssVar('--run-ink', '#FFB877'),
+      runRgb: cssVar('--run-rgb', '255,159,69'),
+      d: [cssVar('--d', '#4C8DFF'), cssVar('--d-bg', 'rgba(76,141,255,.15)')],
+      a: [cssVar('--a', '#FFA24C'), cssVar('--a-bg', 'rgba(255,162,76,.15)')],
+      n: [cssVar('--n', '#B18CFF'), cssVar('--n-bg', 'rgba(177,140,255,.15)')],
+      o: [cssVar('--o', '#35D07F'), cssVar('--o-bg', 'rgba(53,208,127,.14)')]
+    };
+  }
+  function imgRound(ctx, x, y, w, h, r) {
+    var rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+  }
+  function imgFont(ctx, size, weight) {
+    ctx.font = (weight || 700) + ' ' + size + 'px ' + IMG_FONT;
+  }
+  function imgText(ctx, txt, x, y, size, weight, color, align) {
+    imgFont(ctx, size, weight);
+    ctx.fillStyle = color;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(txt, x, y);
+  }
+  function imgWidth(ctx, txt, size, weight) {
+    imgFont(ctx, size, weight);
+    return ctx.measureText(txt).width;
+  }
+
+  function buildCalCanvas() {
+    var base = parseISO(calRef);
+    var y = base.getFullYear(), m = base.getMonth() + 1;
+    var lastDay = monthLastDay(y, m);
+    var isAll = calView === 'all';
+    var G = getGroups();
+    var pal = imgPalette();
+    var PAD = 48, GAP = 8;
+    var innerW = IMG_W - PAD * 2;
+    var firstDow = new Date(y, m - 1, 1).getDay();
+    var weeks = Math.ceil((firstDow + lastDay) / 7);
+    var TOP = 236, DOW_H = 46, LEG_H = 46, FOOT_H = 150;
+    var cellW = (innerW - GAP * 6) / 7;
+    var cellH = 140;
+    var allLabelW = 92, allHeadH = 56, allRowH = 62, allGap = 20;
+    var allCellW = (innerW - allLabelW - GAP * 6) / 7;
+    var gridH = isAll
+      ? weeks * (allHeadH + G * allRowH + allGap)
+      : weeks * cellH + (weeks - 1) * GAP;
+    var H = TOP + (isAll ? 0 : DOW_H) + gridH + (isAll ? 0 : LEG_H) + FOOT_H;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = IMG_W;
+    canvas.height = Math.round(H);
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = pal.bg;
+    ctx.fillRect(0, 0, IMG_W, canvas.height);
+
+    /* ── 제목 ── */
+    ctx.fillStyle = pal.gold;
+    imgRound(ctx, PAD, 50, 9, 38, 4.5);
+    ctx.fill();
+    imgText(ctx, '교대핏', PAD + 22, 80, 24, 800, pal.gold);
+    imgText(ctx, y + '년 ' + m + '월', PAD, 156, 56, 800, pal.txt);
+    imgText(ctx, isAll ? ('전체 조 근무표 · ' + G + '개 조')
+      : (groupName(state.group) + ' · ' + presetName()), PAD, 194, 22, 600, pal.muted);
+
+    /* 오른쪽 — 공휴일 수 · 월급날 */
+    var holCnt = 0;
+    for (var hd = 1; hd <= lastDay; hd++) if (holOf(y + '-' + pad(m) + '-' + pad(hd))) holCnt++;
+    if (holCnt) imgText(ctx, '공휴일 ' + holCnt + '일', IMG_W - PAD, 126, 22, 700, pal.muted, 'right');
+    var payIso = paydayISOOf(y, m);
+    if (payIso) {
+      var pd = parseISO(payIso);
+      imgText(ctx, '월급날 ' + (pd.getMonth() + 1) + '/' + pd.getDate(), IMG_W - PAD, 168, 24, 800, pal.green, 'right');
+    }
+
+    var gTop = TOP + DOW_H;
+    if (isAll) {
+      /* ── 전체 조 — 주마다 요일·날짜 + 조별 한 줄 ── */
+      var payNumA = paydayDay(y, m);
+      for (var w = 0; w < weeks; w++) {
+        var bTop = TOP + w * (allHeadH + G * allRowH + allGap);
+        for (var d0 = 0; d0 < 7; d0++) {
+          var day0 = w * 7 + d0 - firstDow + 1;
+          if (day0 < 1 || day0 > lastDay) continue;
+          var iso0 = y + '-' + pad(m) + '-' + pad(day0);
+          var dw0 = (firstDow + day0 - 1) % 7;
+          var hol0 = holOf(iso0);
+          var cx0 = PAD + allLabelW + d0 * (allCellW + GAP) + allCellW / 2;
+          imgText(ctx, DOW[dw0], cx0, bTop + 20, 18, 700,
+            dw0 === 0 ? pal.hol : (dw0 === 6 ? pal.d[0] : pal.muted), 'center');
+          imgText(ctx, String(day0), cx0, bTop + 47, 24, 800,
+            (hol0 || dw0 === 0) ? pal.hol : pal.txt, 'center');
+          if (day0 === payNumA) {
+            ctx.fillStyle = pal.green;
+            ctx.beginPath();
+            ctx.arc(cx0 + imgWidth(ctx, String(day0), 24, 800) / 2 + 9, bTop + 40, 5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        for (var g = 1; g <= G; g++) {
+          var rTop = bTop + allHeadH + (g - 1) * allRowH;
+          var mine = g === state.group;
+          if (mine) {
+            ctx.fillStyle = 'rgba(' + pal.acc + ',.07)';
+            imgRound(ctx, PAD, rTop - 7, innerW, allRowH, 14);
+            ctx.fill();
+          }
+          imgText(ctx, groupName(g), PAD + 10, rTop + 40, 22, 800, mine ? pal.gold : pal.txt2);
+          for (var d1 = 0; d1 < 7; d1++) {
+            var day1 = w * 7 + d1 - firstDow + 1;
+            if (day1 < 1 || day1 > lastDay) continue;
+            var iso1 = y + '-' + pad(m) + '-' + pad(day1);
+            var meta1 = SHIFT[shiftFor(iso1, g - 1)] || SHIFT.O;
+            var pair1 = pal[meta1.cls];
+            var bx = PAD + allLabelW + d1 * (allCellW + GAP);
+            ctx.fillStyle = pair1[1];
+            imgRound(ctx, bx + 4, rTop + 8, allCellW - 8, 46, 12);
+            ctx.fill();
+            imgText(ctx, meta1.short, bx + allCellW / 2, rTop + 39, 22, 800, pair1[0], 'center');
+          }
+        }
+      }
+    } else {
+      /* ── 내 달력 — 요일 + 날짜 + 근무 배지 + 태그 + 공휴일 ── */
+      var dows = ['일', '월', '화', '수', '목', '금', '토'];
+      for (var i = 0; i < 7; i++) {
+        imgText(ctx, dows[i], PAD + i * (cellW + GAP) + cellW / 2, TOP + 26, 21, 700,
+          i === 0 ? pal.hol : (i === 6 ? pal.d[0] : pal.muted), 'center');
+      }
+      var payNum = paydayDay(y, m);
+      for (var day = 1; day <= lastDay; day++) {
+        var idx = firstDow + day - 1;
+        var row = Math.floor(idx / 7), col = idx % 7;
+        var x = PAD + col * (cellW + GAP);
+        var yy = gTop + row * (cellH + GAP);
+        var iso = y + '-' + pad(m) + '-' + pad(day);
+        var meta = SHIFT[myShift(iso)] || SHIFT.O;
+        var hol = holOf(iso);
+        var lg = state.logs[iso] || null;
+        var tags = (lg && Array.isArray(lg.tags)) ? lg.tags : [];
+        var sched = (lg && lg.sched) ? String(lg.sched) : '';
+        var ddw = new Date(y, m - 1, day).getDay();
+
+        ctx.fillStyle = pal.card;
+        imgRound(ctx, x, yy, cellW, cellH, 18);
+        ctx.fill();
+        ctx.strokeStyle = pal.line;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        imgText(ctx, String(day), x + cellW / 2, yy + 40, 26, 800,
+          (hol || ddw === 0) ? pal.hol : (ddw === 6 ? pal.d[0] : pal.txt), 'center');
+
+        if (day === payNum) {
+          var pw = imgWidth(ctx, '월급', 13, 800) + 12;
+          ctx.fillStyle = pal.green;
+          imgRound(ctx, x + cellW - pw - 8, yy + 9, pw, 21, 7);
+          ctx.fill();
+          imgText(ctx, '월급', x + cellW - pw / 2 - 8, yy + 24, 13, 800, pal.bg, 'center');
+        }
+
+        /* 근무 배지 */
+        var pair = pal[meta.cls];
+        ctx.fillStyle = pair[1];
+        imgRound(ctx, x + (cellW - 78) / 2, yy + 50, 78, 42, 11);
+        ctx.fill();
+        imgText(ctx, meta.short, x + cellW / 2, yy + 79, 24, 800, pair[0], 'center');
+
+        /* 근무 변경 태그 / 짧은 일정 */
+        var mark = tags.length ? (tags[0] + (tags.length > 1 ? '+' + (tags.length - 1) : ''))
+          : (sched ? sched.slice(0, 7) : '');
+        if (mark) {
+          var tw = Math.min(cellW - 18, imgWidth(ctx, mark, 16, 800) + 18);
+          ctx.fillStyle = tags.length ? 'rgba(' + pal.runRgb + ',.20)' : 'rgba(' + pal.acc + ',.16)';
+          imgRound(ctx, x + (cellW - tw) / 2, yy + 98, tw, 26, 8);
+          ctx.fill();
+          imgText(ctx, mark, x + cellW / 2, yy + 116, 16, 800, tags.length ? pal.run : pal.gold, 'center');
+        }
+
+        /* 공휴일 이름 */
+        if (hol) imgText(ctx, hol[0], x + cellW / 2, yy + 133, 14, 700, pal.hol, 'center');
+      }
+
+      /* 범례 */
+      var ly = gTop + weeks * cellH + (weeks - 1) * GAP + 28;
+      var lx = PAD;
+      ['D', 'A', 'N', 'O'].forEach(function (code) {
+        var mt = SHIFT[code], pr = pal[mt.cls];
+        ctx.fillStyle = pr[1];
+        imgRound(ctx, lx, ly, 32, 32, 9);
+        ctx.fill();
+        imgText(ctx, mt.short, lx + 16, ly + 23, 17, 800, pr[0], 'center');
+        imgText(ctx, mt.name, lx + 41, ly + 22, 18, 700, pal.muted);
+        lx += 41 + imgWidth(ctx, mt.name, 18, 700) + 26;
+      });
+      if (payNum) {
+        ctx.fillStyle = pal.green;
+        imgRound(ctx, lx, ly + 8, 17, 17, 5);
+        ctx.fill();
+        imgText(ctx, '월급날', lx + 25, ly + 22, 18, 700, pal.muted);
+      }
+    }
+
+    /* ── 하단 워터마크 ── */
+    var fy = canvas.height - 72;
+    ctx.strokeStyle = pal.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, fy - 42);
+    ctx.lineTo(IMG_W - PAD, fy - 42);
+    ctx.stroke();
+    imgText(ctx, '교대핏', PAD, fy + 4, 26, 800, pal.gold);
+    imgText(ctx, 'by 킹용코', PAD + imgWidth(ctx, '교대핏', 26, 800) + 10, fy + 4, 20, 700, pal.muted);
+    imgText(ctx, '교대근무 근무표 · 헬스 · 식단', PAD, fy + 32, 17, 600, pal.faint);
+    imgText(ctx, todayISO().replace(/-/g, '.') + ' 기준', IMG_W - PAD, fy + 32, 17, 600, pal.muted, 'right');
+
+    return {
+      canvas: canvas,
+      filename: '교대핏_' + y + '-' + pad(m) + (isAll ? '_전체조' : '') + '.png',
+      title: y + '년 ' + m + '월 ' + (isAll ? '전체 조 근무표' : '근무표')
+    };
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve, reject) {
+      if (canvas.toBlob) {
+        canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob')); }, 'image/png');
+        return;
+      }
+      try {
+        var url = canvas.toDataURL('image/png');
+        var bin = atob(url.split(',')[1]);
+        var arr = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        resolve(new Blob([arr], { type: 'image/png' }));
+      } catch (e) { reject(e); }
+    });
+  }
+
+  /* Pretendard가 준비된 뒤에 그려야 글자가 깨지지 않는다 */
+  function imgFontsReady() {
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    return Promise.all([
+      document.fonts.load('800 56px "Pretendard Variable"'),
+      document.fonts.load('700 22px "Pretendard Variable"'),
+      document.fonts.load('600 18px "Pretendard Variable"')
+    ]).catch(function () { }).then(function () {
+      return document.fonts.ready;
+    }).catch(function () { });
+  }
+
+  function triggerDownload(url, name) {
+    try {
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 0);
+    } catch (e) { }
+  }
+
+  function showImageModal(url, name, file) {
+    var wrap = $('imgWrap');
+    if (!wrap) return;
+    $('imgPreview').src = url;
+    var a = $('imgDownload');
+    a.href = url;
+    a.setAttribute('download', name);
+    $('imgTitle').textContent = name.replace(/\.png$/i, '');
+    $('imgSub').textContent = '길게 눌러 사진 저장 · 카톡으로 보내기';
+    var sh = $('imgShare');
+    if (sh) {
+      if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        sh.hidden = false;
+        sh.onclick = function () {
+          navigator.share({ files: [file], title: name }).catch(function () { });
+        };
+      } else {
+        sh.hidden = true;
+      }
+    }
+    wrap.classList.add('open');
+  }
+  function closeImageModal() {
+    var wrap = $('imgWrap');
+    if (wrap) wrap.classList.remove('open');
+  }
+
+  /* 이미지 저장 버튼 — 공유 시트가 되면 공유, 아니면 다운로드 + 미리보기 */
+  function exportCalendarImage() {
+    var btn = $('btnCalImage');
+    if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+    imgFontsReady()
+      .then(function () { return buildCalCanvas(); })
+      .then(function (out) {
+        return canvasToBlob(out.canvas).then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var file = null;
+          try { file = new File([blob], out.filename, { type: 'image/png' }); } catch (e) { file = null; }
+          var canShare = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+          var fallback = function () {
+            triggerDownload(url, out.filename);
+            showImageModal(url, out.filename, file);
+            if (imgURL && imgURL !== url) { try { URL.revokeObjectURL(imgURL); } catch (e) { } }
+            imgURL = url;
+            toast('이미지 준비 완료 — 저장 또는 길게 눌러 저장');
+          };
+          if (!canShare) { fallback(); return; }
+          navigator.share({ files: [file], title: out.title }).then(function () {
+            try { URL.revokeObjectURL(url); } catch (e) { }
+          }).catch(function (err) {
+            if (err && err.name === 'AbortError') { try { URL.revokeObjectURL(url); } catch (e) { } return; }
+            fallback();
+          });
+        });
+      })
+      .catch(function (e) {
+        if (window.console && console.warn) console.warn('[교대핏] 이미지 저장 실패', e);
+        toast('이미지를 만들지 못했어요 — 다시 눌러주세요');
+      })
+      .then(function () {
+        if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+      });
   }
 
   /* ---------------- 렌더: 기록 ---------------- */
@@ -1452,6 +1916,16 @@
       $('t' + c + '_e').value = t[1];
     });
 
+    /* 월급날 */
+    var sel = $('paydaySelect');
+    if (sel) {
+      var opts = '<option value="none">없음</option>';
+      for (var pd = 1; pd <= 31; pd++) opts += '<option value="' + pd + '">' + pd + '일</option>';
+      opts += '<option value="last">말일</option>';
+      sel.innerHTML = opts;
+      sel.value = state.payday === 0 ? 'none' : (state.payday === 'last' ? 'last' : String(state.payday));
+    }
+
     $('customErr').hidden = true;
   }
 
@@ -1784,6 +2258,29 @@
       var b = e.target.closest('[data-date]');
       if (b) openSheet(b.dataset.date);
     });
+
+    /* 근무표 이미지 저장 (v2.3) */
+    if ($('btnCalImage')) $('btnCalImage').addEventListener('click', exportCalendarImage);
+    if ($('imgWrap')) {
+      $('imgWrap').addEventListener('click', function (e) {
+        if (e.target.closest('[data-close]')) closeImageModal();
+      });
+    }
+    if ($('imgClose')) $('imgClose').addEventListener('click', closeImageModal);
+
+    /* 월급날 설정 (v2.3) */
+    if ($('paydaySelect')) {
+      $('paydaySelect').addEventListener('change', function () {
+        var v = this.value;
+        state.payday = v === 'none' ? 0 : (v === 'last' ? 'last' : Math.round(Number(v)));
+        save();
+        renderCal();
+        renderSettings();
+        if (state.payday === 0) toast('월급날 표시를 꿨습니다');
+        else if (state.payday === 'last') toast('월급날 — 매월 말일');
+        else toast('월급날 — 매월 ' + state.payday + '일');
+      });
+    }
 
     /* 기록 */
     $('btnAddLog').addEventListener('click', function () { openSheet(todayISO()); });

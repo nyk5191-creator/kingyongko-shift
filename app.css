@@ -1030,3 +1030,63 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 .datebar.cal-bar{padding:0 2px 8px}
 .datebar.cal-bar .d2{margin-top:0;font-size:11.5px}
 .cday{aspect-ratio:1/1.45}
+
+/* ===================================================================
+   v2.3 추가분 — 월급날 · 이달 근태 정산 · 근무표 이미지 저장
+   =================================================================== */
+
+/* ---------- 달력 상단: 📷 이미지 저장 버튼 ---------- */
+.datebar.cal-bar{display:flex;align-items:center;gap:8px}
+.datebar.cal-bar .d2{flex:1 1 auto;min-width:0}
+.cal-img-btn{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;
+  padding:7px 11px;border-radius:999px;
+  border:1px solid rgba(var(--accent-rgb),.40);background:var(--yellow-dim);
+  color:var(--yellow-ink2);font-family:inherit;font-size:11px;font-weight:800;
+  letter-spacing:-.03em;line-height:1;white-space:nowrap;
+}
+.cal-img-btn:active{transform:scale(.96)}
+.cal-img-btn[disabled],.cal-img-btn.busy{opacity:.5}
+
+/* ---------- 월급날 — 칸 테두리 + 초록 '월급' ---------- */
+.cday.payday{box-shadow:inset 0 0 0 1.5px rgba(var(--green-rgb),.50)}
+.cday.payday.has-today{box-shadow:inset 0 0 0 1.5px rgba(var(--green-rgb),.55),0 0 0 1px rgba(var(--accent-rgb),.35)}
+.cday .ctag.pay{color:var(--green-ink);background:rgba(var(--green-rgb),.16)}
+.cal-legend .pt.p{background:var(--green);width:6px;height:6px;border-radius:50%}
+.wk-h.pay b{box-shadow:inset 0 -2px 0 var(--green)}
+
+/* ---------- 이달 근태 정산 카드 ---------- */
+.settle-card{margin-top:9px;padding:13px 14px}
+.sk-head{display:flex;align-items:baseline;gap:8px}
+.sk-head b{font-size:13px;font-weight:800;letter-spacing:-.02em}
+.sk-head span{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted)}
+.sk-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}
+.sk{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 2px 8px;border-radius:11px;
+  background:var(--card2);border:1px solid var(--line);
+}
+.sk b{font-size:16px;font-weight:800;line-height:1.1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--txt)}
+.sk i{font-style:normal;font-size:10px;font-weight:800;color:var(--muted);letter-spacing:-.02em}
+.sk-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)}
+.sk-hours{display:inline-flex;align-items:baseline;gap:4px;
+  font-size:11px;font-weight:700;color:var(--muted)}
+.sk-hours b{font-size:16px;font-weight:800;color:var(--d);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.sk-hours i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--muted)}
+.st-pay{margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+  padding:5px 9px;border-radius:9px;
+  background:rgba(var(--green-rgb),.14);border:1px solid rgba(var(--green-rgb),.34)}
+.st-pay b{font-size:10.5px;font-weight:800;color:var(--green-ink);letter-spacing:-.03em}
+.st-pay i{font-style:normal;font-size:10px;font-weight:800;color:var(--green);letter-spacing:-.02em}
+
+/* ---------- 근무표 이미지 미리보기 시트 ---------- */
+.img-sheet{max-height:92dvh}
+.img-body{padding:12px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--sunken)}
+.img-body img{display:block;width:100%;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.img-foot{display:grid;grid-template-columns:1fr 1.2fr;gap:9px;
+  padding:10px 16px calc(16px + var(--safe-b));border-top:1px solid var(--line-soft)}
+.img-foot #imgShare{grid-column:1/-1;display:none}
+.img-foot #imgShare:not([hidden]){display:block}
+.img-foot .btn-primary{display:flex;align-items:center;justify-content:center;text-decoration:none}

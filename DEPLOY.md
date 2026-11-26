@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.2.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.3.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,13 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.3.0 (2026-11-26)
+- **월급날** — 설정에 `월급날`(없음 / 1~31일 / 말일, 기본 25일) 추가. 달력 칸에 초록 테두리 + 초록 `월급`, 이달 근태 정산 카드에 `월급날 12월 25일 · D-5`. 30일·31일처럼 없는 달은 말일로 당김.
+- **이달 근태 정산** — 대근·특근·연차·교육 횟수(날짜 태그 기준) + 예정 근무시간(근무일 × 설정 근무시간, 4조 2교대 11월 = 15일 × 12h = 180시간).
+- **근무표 이미지 저장** — 달력 탭 상단 `📷 이미지 저장`. 현재 보는 달(내 달력/전체 조)을 canvas로 1080px PNG 생성(제목·요일·날짜·근무 배지·대근/연차 태그·공휴일·월급날·범례·`교대핏 by 킹용코` 워터마크). `navigator.share({files})` 지원 시 공유 시트, 아니면 `교대핏_2026-11.png` 다운로드 + 미리보기 시트.
+- `?v=2.3.0` 캐시버스트, `CACHE = yongko-shift-v2.3.0`, 저장값 `v:4 → v:5`(payday 추가, 기존 저장본은 25일 기본값).
+- 검수: Playwright 390×844 라이브 — 콘솔/페이지 에러 0건, 월 이미지 1080×1210, 전체 조 이미지 1080×2006, 다운로드 파일명 `교대핏_2026-11.png`.
 
 ## v2.2 (2026-11-26)
 - **교대핏 리브랜딩** — `<title>`·`manifest.json`(`name`·`short_name`=`교대핏`)·상단 로고(`교대핏` + `by 킹용코 · …`), 아이콘 6종을 골드 `핏` + 교대 회전 링으로 재생성.
