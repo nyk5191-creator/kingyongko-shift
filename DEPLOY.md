@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.2`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,18 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.2 (2026-11-27) — 칼로리 계산기를 기록 탭 맨 위로 이동
+- **`index.html`** — `#tab-log`의 날짜바 바로 아래(이달 누적 러닝/오운완 `#logStats` 위)에 `🧮 내 탄단지·칼로리` `sec-head` + `#calcCard` 카드 + `계산 공식 — 직접 검산용` 아코디언을 통째로 이동. 기존 `gblock[data-cat="calc"]` 래퍼는 벗기고 내부만 2칸 dedent. ID 10개(`calcSex`·`calcWeight`·`calcAct`·`calcGoal`·`calcKcal`·`calcP`·`calcF`·`calcC`·`calcLine`·`calcSub`)와 `calcNote` 그대로 — 기능·저장값(`state.calc`) 변경 없음.
+- **가이드 정리** — `data-gcat="calc"` 칩 삭제(칩 5개: `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🏃 러닝 | 🩺 건강·수면`), 가이드 날짜바 설명에서 `· 계산기` 제거, 더 보기 블록 주석 번호 6→5. 기록 탭 날짜바 설명은 `탄단지 계산 · 체중 · 러닝 거리 · 운동 부위 · 식단 메모`.
+- **`app.js`** — `GCATS = ['all','ebook','qa','run','health']`(저장된 `guideCat='calc'`는 `load()`의 `GCATS.indexOf` 폴백으로 `'all'`), `renderTab('log')`에서 `renderCalc()` 호출. 계산기 이벤트는 document 위임 + `#calcWeight` 직접 바인딩이라 탭과 무관하게 동작.
+- `?v=2.5.2`(index.html 9곳) · `sw.js` `VERSION = '2.5.2'` / `CACHE = yongko-shift-v2.5.2` · 하단 표기 `교대핏 v2.5.2`(3곳). README 상단 버전·v2.5.2 절 추가.
+- 배포: 커밋 `bd1f789` → Pages `built`. 검수(2026-11-27 04:53 KST): 라이브 HTTP 200 — `/`·`/index.html` 70,375B, `app.js?v=2.5.2` 122,079B, `app.css?v=2.5.2` 58,406B, `sw.js` 2,970B, `manifest.json` 930B, `icon-192.png` 39,476B. **MD5 로컬=라이브 6/6 일치** — `index.html` `8b876139`, `app.js` `e7a15a2b`, `app.css` `abf1747c`, `sw.js` `b5e10fe8`, `manifest.json` `f421ce74`, `icon-192.png` `e9bedde1`.
+- 라이브 구조 — `data-gcat` 칩 5개(`all`·`ebook`·`qa`·`run`·`health`, `calc` 0건), `gblock` 6개(`start`·`ebook`·`qa`·`run`·`health`·`cta`), `#calcCard`는 `#tab-log` 안(줄 202) · `#logStats`(줄 270)보다 앞, `#tab-guide` 안에 `calcCard` 없음. `app.js` `GCATS = ['all', 'ebook', 'qa', 'run', 'health']`, `sw.js` `VERSION = '2.5.2'`, `index.html` `2.5.2` 10곳·`2.5.1` 0곳.
+- JS 문법: `esprima.parseScript` 통과(`app.js` 122,079B · `sw.js`) — node 없음. HTML 태그 밸런스 오류 0건(미닫힘 0), CSS 중괄호 564/564. **Playwright 미실시** — 브리프 지시(한도 절약: 문법·태그 검사 + `git push` + `curl` HTTP·MD5로 대체).
+
+## v2.5.1 (2026-11-27) — 가이드 문구 3곳
+- Q3 제목 `잠 어떻게 자나요?` · Q3 카페인 행 `수면 패턴 바꾸는 날` · 4조 2교대 `주·주·휴·휴·야·야·휴·휴 (8일)` · 3대 수칙 하단 `더 자세히 볼 수 있다`. 커밋 `cfe183f`.
 
 ## v2.5.0 (2026-11-27) — 가이드 분리(러닝·건강·수면) + 탄단지·칼로리 계산기
 - **가이드 칩 6개** — `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🏃 러닝 | 🩺 건강·수면 | 🧮 칼로리 계산기`. `GCATS = ['all','ebook','qa','run','health','calc']`, `.gblock[data-cat]` 7개(`start`·`ebook`·`qa`·`run`·`health`·`calc`·`cta`).
