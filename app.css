@@ -1091,7 +1091,7 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 .img-foot .btn-primary{display:flex;align-items:center;justify-content:center;text-decoration:none}
 
 /* ===================================================================
-   v2.4 추가분 — 가이드 카테고리 칩 · Q번호 · 24h 타임라인 · 존 배지
+   v2.4 추가분 — 가이드 카테고리 칩 · Q번호 · 존 배지 (타임라인 CSS는 v2.4.1에서 삭제)
    =================================================================== */
 
 /* 카테고리 칩 — 한 줄 가로 스크롤 (손가락으로 밀어서) */
@@ -1123,18 +1123,6 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 .rk.z2{color:var(--green);background:rgba(var(--green-rgb),.14)}
 .rk.z4{color:var(--run);background:rgba(var(--run-rgb),.15)}
 .rk.warn{color:var(--hol);background:rgba(var(--hol-rgb),.13)}
-
-/* 24시간 타임라인 */
-.tlines{display:flex;flex-direction:column}
-.tline{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line-soft)}
-.tline:last-child{border-bottom:0;padding-bottom:0}
-.tline:first-child{padding-top:0}
-.tl-time{
-  flex:0 0 44px;font-size:11px;font-weight:800;line-height:1.6;
-  color:var(--yellow-ink2);font-variant-numeric:tabular-nums;letter-spacing:-.01em;
-}
-.tl-body{flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:var(--txt);font-weight:500}
-.tl-body b{font-weight:800;color:var(--txt-strong)}
 
 /* 오늘 탭 코칭 → 가이드 바로가기 (v2.4) */
 .cs-guide{display:flex;gap:6px;margin:2px 0 8px}

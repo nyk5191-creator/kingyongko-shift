@@ -1,5 +1,5 @@
 /* ===================================================================
-   교대핏 v2.4.0 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.4.1 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
@@ -21,6 +21,8 @@
            · 전자책 핵심(탄단지 공식·75kg 식단 예시·3/4분할 루틴표·보충제 WPC/WPI·크레아틴)
            · 교대근무 Q&A 백과 Q1~Q6 · 근무별 24시간 타임라인(주간·야간·오프·3교대 전환)
            · 심박수 존 러닝(Zone 2/4) · 교대근무 3대 건강 수칙 · 오늘 탭 코칭에서 가이드 바로가기
+   v2.4.1: 24h 타임라인 섹션·카테고리 칩 제거(가이드 단순화) — 저장된 guideCat='timeline'은 'all'로 폴백
+           · 오늘 탭 코칭 바로가기는 📕 전자책 핵심 · ❓ Q&A 백과 2개
    =================================================================== */
 (function () {
   'use strict';
@@ -50,7 +52,7 @@
   ];
 
   /* 가이드 카테고리 칩 (v2.4) — index.html의 #gcatChips / .gblock[data-cat]과 짝 */
-  var GCATS = ['all', 'ebook', 'qa', 'timeline', 'run'];
+  var GCATS = ['all', 'ebook', 'qa', 'run'];   /* v2.4.1: 'timeline' 제거 */
 
   /* 2026~2027 대한민국 법정공휴일 (대체공휴일 포함).
      근거: 「관공서의 공휴일에 관한 규정」 제2조·제3조, 우주항공청 월력요항(2026·2027).
@@ -612,7 +614,7 @@
     groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
     theme: 'dark',
     coachOpen: false,
-    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/timeline/run */
+    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run */
     payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
@@ -950,7 +952,7 @@
       coachCard(ICON.bowl, '오늘 식단 타이밍', c.diet) +
       coachCard(ICON.coffee, '카페인 · 수면', c.caffeine) +
       '<div class="cs-guide">' +
-        '<button class="cs-gbtn" data-gcat="timeline">🕒 오늘 24h 타임라인<span class="ar">→</span></button>' +
+        '<button class="cs-gbtn" data-gcat="ebook">📕 전자책 핵심<span class="ar">→</span></button>' +
         '<button class="cs-gbtn" data-gcat="qa">❓ Q&amp;A 백과<span class="ar">→</span></button>' +
       '</div>';
     applyCoachOpen();

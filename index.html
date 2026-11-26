@@ -11,9 +11,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="교대핏">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.4.0">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2.4.0">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2.4.0">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.4.1">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2.4.1">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2.4.1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* app.css를 못 불러온 경우에도 검색창·검색 버튼·요청 링크가 깨지지 않게 하는 최소 안전장치 (app.css가 오면 이 규칙을 덮어씁니다) */
@@ -24,7 +24,7 @@
 .co-ask-row{display:flex;gap:6px;align-items:stretch}
 .co-ask-b{flex:1 1 0;display:block;padding:9px 7px;border:1px solid #2A2A30;border-radius:11px;background:#1C1C21;color:#EEE;text-decoration:none;text-align:center;font-size:11px;line-height:1.35}
 </style>
-<link rel="stylesheet" href="app.css?v=2.4.0">
+<link rel="stylesheet" href="app.css?v=2.4.1">
 <script>
 /* 저장해둔 화면 테마를 첫 그림 전에 적용 (흰 화면 깜빡임 방지) */
 (function () {
@@ -42,7 +42,7 @@
 
   <header class="topbar">
     <div class="brand">
-      <img class="brand-mark" src="icon-192.png?v=2.4.0" alt="" width="30" height="30">
+      <img class="brand-mark" src="icon-192.png?v=2.4.1" alt="" width="30" height="30">
       <span class="brand-txt">
         <b>교대핏</b>
         <i id="topSub">by 킹용코 · 4조 2교대 · A조</i>
@@ -127,7 +127,7 @@
         </div>
       </div>
 
-      <div class="foot-note">교대핏 v2.4.0 · 기록은 이 기기에만 저장됩니다</div>
+      <div class="foot-note">교대핏 v2.4.1 · 기록은 이 기기에만 저장됩니다</div>
     </section>
 
     <!-- ============ 달력 (첫 화면) ============ -->
@@ -217,7 +217,7 @@
     <section class="tab" id="tab-guide">
       <div class="datebar">
         <div class="d1">가이드</div>
-        <div class="d2">전자책 핵심 · Q&amp;A 백과 · 24시간 타임라인 · 러닝·건강</div>
+        <div class="d2">전자책 핵심 · Q&amp;A 백과 · 러닝·건강</div>
       </div>
 
       <!-- 카테고리 칩 (v2.4) — 한눈에 원하는 것만 펼쳐 보기 -->
@@ -226,7 +226,6 @@
           <button class="chip on" data-gcat="all" role="tab" aria-selected="true">전체</button>
           <button class="chip" data-gcat="ebook" role="tab" aria-selected="false">📕 전자책 핵심</button>
           <button class="chip" data-gcat="qa" role="tab" aria-selected="false">❓ Q&amp;A 백과</button>
-          <button class="chip" data-gcat="timeline" role="tab" aria-selected="false">🕒 24h 타임라인</button>
           <button class="chip" data-gcat="run" role="tab" aria-selected="false">🏃 러닝·건강</button>
         </div>
       </div>
@@ -542,100 +541,7 @@
         </details>
       </div>
 
-      <!-- ---------- 3. 24시간 타임라인 ---------- -->
-      <div class="gblock" data-cat="timeline">
-        <div class="sec-head"><span>🕒 근무별 24시간 타임라인</span><span class="sub">그대로 따라 쓰는 하루</span></div>
-
-        <details class="acc" open>
-          <summary>
-            <span class="acc-em">☀️</span>
-            <span class="acc-t">주간 근무일 (07:00~19:00)</span>
-            <span class="acc-tag">주간</span>
-            <span class="acc-ar">⌄</span>
-          </summary>
-          <div class="acc-body">
-            <div class="acc-note">주간 근무일엔 <b>운동을 안 한다.</b> 12시간 근무 + 왕복이면 이미 운동이다. 대신 먹는 타이밍으로 버틴다.</div>
-            <div class="tlines">
-              <div class="tline"><span class="tl-time">05:30</span><span class="tl-body"><b>기상</b> — 물 300ml, 햇빛 15분. 프로틴 1잔 또는 계란 2개</span></div>
-              <div class="tline"><span class="tl-time">06:00</span><span class="tl-body">출근 준비 — 도시락 2개(닭가슴살 150g + 맨밥 200g), 커피 1잔은 여기까지</span></div>
-              <div class="tline"><span class="tl-time">07:00</span><span class="tl-body"><b>근무 시작</b> — 12:00까지 물 500ml. 10시 간식(바나나·구운계란)</span></div>
-              <div class="tline"><span class="tl-time">12:00</span><span class="tl-body"><b>점심</b> — 단백질 먼저, 밥은 반 공기. 먹고 10분 걷기(혈당 스파이크 차단)</span></div>
-              <div class="tline"><span class="tl-time">13:00</span><span class="tl-body"><b>카페인 컷</b> — 취침 9시간 전. 이후엔 물·차만</span></div>
-              <div class="tline"><span class="tl-time">15:00</span><span class="tl-body">간식 — 프로틴 1잔 또는 그릭요거트. 여기서 탄수를 안 채우면 21시에 편의점 간다</span></div>
-              <div class="tline"><span class="tl-time">19:00</span><span class="tl-body"><b>퇴근</b> — 운동 안 함. 주간 근무일은 회복이 운동이다</span></div>
-              <div class="tline"><span class="tl-time">20:00</span><span class="tl-body"><b>저녁</b> — 단백질 40g + 채소, 탄수는 적게. 먹고 10분 걷기</span></div>
-              <div class="tline"><span class="tl-time">21:30</span><span class="tl-body">샤워 후 폰 <b>야간모드·밝기 20%</b>. 내일 도시락 싸두기</span></div>
-              <div class="tline"><span class="tl-time">22:30</span><span class="tl-body"><b>취침</b> — 방 18~20도, 암막·수면안대. 7시간 확보</span></div>
-            </div>
-          </div>
-        </details>
-
-        <details class="acc">
-          <summary>
-            <span class="acc-em">🌙</span>
-            <span class="acc-t">야간 근무일 (19:00~07:00)</span>
-            <span class="acc-tag">야간</span>
-            <span class="acc-ar">⌄</span>
-          </summary>
-          <div class="acc-body">
-            <div class="acc-note">야간조는 <b>출근 전 60분 운동 + 17:30 식사</b>가 몸통이다. 새벽엔 먹는 양보다 <b>안 먹는 시간</b>이 중요하다.</div>
-            <div class="tlines">
-              <div class="tline"><span class="tl-time">15:30</span><span class="tl-body"><b>기상</b> — 물 300ml, 햇빛 15분. 일어나자마자 폰 보지 않기</span></div>
-              <div class="tline"><span class="tl-time">16:00</span><span class="tl-body"><b>운동 60분</b> — 복합 4~5종 8~10회 × 3세트. 카페인은 운동 전 1잔까지</span></div>
-              <div class="tline"><span class="tl-time">17:30</span><span class="tl-body"><b>식사</b> — 단백질 40g + 밥 200g. 이 끼가 밤을 버티는 끼다. 여기서 굶으면 새벽에 라면 먹는다</span></div>
-              <div class="tline"><span class="tl-time">18:30</span><span class="tl-body">출근 — 구운계란·그릭요거트·프로틴 챙기기. 안 챙기면 편의점 김밥이다</span></div>
-              <div class="tline"><span class="tl-time">19:00</span><span class="tl-body"><b>근무 시작</b> — 물 500ml씩. 22시 가벼운 간식(단백질 위주)</span></div>
-              <div class="tline"><span class="tl-time">01:00</span><span class="tl-body"><b>야간식 + 카페인 컷</b> — 250kcal 이하 단백질 위주(계란·요거트·닭가슴살 소시지). 이후 커피 금지</span></div>
-              <div class="tline"><span class="tl-time">03:00</span><span class="tl-body">이후엔 <b>물·단백질만</b>. 라면·김밥·에너지드링크 금지</span></div>
-              <div class="tline"><span class="tl-time">07:00</span><span class="tl-body"><b>퇴근</b> — 선글라스 쓰고 바로 귀가. 밝은 빛 10분이 잠을 1~2시간 밀어낸다</span></div>
-              <div class="tline"><span class="tl-time">07:30</span><span class="tl-body">단백질 30~40g — 운동한 날이면 흰쌀밥 3~4숟가락 추가. 물은 200ml만</span></div>
-              <div class="tline"><span class="tl-time">08:30</span><span class="tl-body"><b>취침</b> — 암막·수면안대, 7시간 30분 뒤(16:00) 기상</span></div>
-            </div>
-          </div>
-        </details>
-
-        <details class="acc">
-          <summary>
-            <span class="acc-em">🛌</span>
-            <span class="acc-t">오프(휴무)일 — 90분 본운동 날</span>
-            <span class="acc-tag">휴무</span>
-            <span class="acc-ar">⌄</span>
-          </summary>
-          <div class="acc-body">
-            <div class="acc-note">오프는 <b>한 주에 두 번뿐인 성장 날</b>이다. 운동 시간은 늘리고, 먹는 건 깨끗하게.</div>
-            <div class="tlines">
-              <div class="tline"><span class="tl-time">08:00</span><span class="tl-body"><b>기상</b> — 물 300ml + 햇빛. 공복 유산소는 20분까지만(길면 근손실)</span></div>
-              <div class="tline"><span class="tl-time">09:00</span><span class="tl-body">아침 — 단백질 35g + 탄수(밥 150g). 운동 90분 전 마지막 식사</span></div>
-              <div class="tline"><span class="tl-time">10:30</span><span class="tl-body"><b>본운동 90분</b> — 하체 또는 상체 고강도, 5~8회 × 4~5세트. 첫 종목에 힘을 다 쓴다</span></div>
-              <div class="tline"><span class="tl-time">12:30</span><span class="tl-body"><b>점심</b> — 운동 후 1시간 안. 단백질 45g + 밥 200g</span></div>
-              <div class="tline"><span class="tl-time">15:00</span><span class="tl-body">간식 — 프로틴 + 과일. 여기가 유일하게 탄수 늘려도 되는 시간</span></div>
-              <div class="tline"><span class="tl-time">18:30</span><span class="tl-body">저녁 — 단백질 40g + 채소, 탄수는 줄이기. 술은 여기서 한 잔까지가 상한</span></div>
-              <div class="tline"><span class="tl-time">21:00</span><span class="tl-body">가벼운 산책 20분 — 다음 근무로 넘어가는 리셋</span></div>
-              <div class="tline"><span class="tl-time">23:30</span><span class="tl-body"><b>취침</b> — 다음 날 주간이면 7시간 확보. 야간이면 06:00 취침으로 미리 밀어두기</span></div>
-            </div>
-          </div>
-        </details>
-
-        <details class="acc">
-          <summary>
-            <span class="acc-em">🔄</span>
-            <span class="acc-t">3교대(주/오/야) 전환 팁</span>
-            <span class="acc-tag">전환</span>
-            <span class="acc-ar">⌄</span>
-          </summary>
-          <div class="acc-body">
-            <div class="acc-note">전환일엔 <b>고중량·인터벌 금지</b>. 걷기 30분 + 스트레칭이 그날의 운동이다. 몸은 이틀이면 적응하고, 무리한 하루가 일주일을 망친다.</div>
-            <div class="rows">
-              <div class="r"><span class="rk d">주 → 오</span><span class="rv">2일은 늦게 자도 된다. 취침 01:00 → 기상 09:00, 운동은 오전 10시. 저녁 약속은 첫날만</span></div>
-              <div class="r"><span class="rk a">오 → 야</span><span class="rv">오후조 마지막 날 24:00 취침 → 다음 날 10:00 기상 → <b>16:00 낮잠 1시간</b> → 19:00 출근</span></div>
-              <div class="r"><span class="rk n">야 → 주</span><span class="rv">마지막 야간 후 <b>4~5시간만</b> 자고 13~14시 기상 → 밤 23:00 취침. 첫 주간은 카페인 14시 컷</span></div>
-              <div class="r"><span class="rk o">공통</span><span class="rv">첫 끼는 기상 후 1시간, 마지막 끼는 취침 3시간 전. 밥 시간을 안 옮기면 잠만 옮겨서 새벽에 배가 깨운다</span></div>
-            </div>
-          </div>
-        </details>
-      </div>
-
-      <!-- ---------- 4. 러닝·건강 ---------- -->
+      <!-- ---------- 3. 러닝·건강 ---------- -->
       <div class="gblock" data-cat="run">
         <div class="sec-head"><span>🏃 러닝 &amp; 건강 체크</span><span class="sub">심박수 존 · 3대 수칙</span></div>
 
@@ -734,7 +640,7 @@
         </details>
       </div>
 
-      <!-- ---------- 5. 더 보기 (항상 표시) ---------- -->
+      <!-- ---------- 4. 더 보기 (항상 표시) ---------- -->
       <div class="gblock" data-cat="cta">
         <div class="sec-head"><span>더 보기</span></div>
         <a class="cta-card" href="https://litt.ly/kingyongko" target="_blank" rel="noopener noreferrer">
@@ -756,7 +662,7 @@
 
       </div><!-- /#guideLib -->
 
-      <div class="foot-note">교대핏 v2.4.0 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.4.1 · 킹용코</div>
     </section>
 
     <!-- ============ 설정 ============ -->
@@ -871,7 +777,7 @@
         <div class="help">기록은 이 브라우저(localStorage)에만 저장됩니다. 백업 없이 브라우저 데이터를 지우면 기록도 사라집니다.</div>
       </div>
 
-      <div class="foot-note">교대핏 v2.4.0 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.4.1 · 킹용코</div>
     </section>
   </main>
 
@@ -1025,6 +931,6 @@
   </div>
 </div>
 
-<script src="app.js?v=2.4.0"></script>
+<script src="app.js?v=2.4.1"></script>
 </body>
 </html>
