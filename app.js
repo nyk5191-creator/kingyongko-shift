@@ -1,5 +1,5 @@
 /* ===================================================================
-   교대핏 v2.3.2 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.4.0 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
@@ -17,6 +17,10 @@
            (공유 시트 → 없으면 다운로드 + 미리보기 모달)
    v2.3.2: 앱 아이콘 교체 — 다크 달력 + 골드 펄스(사용자 선택 2번) · 상단 로고 배지도 같은 아이콘
    v2.3.1: 회사 추가 — 한국엔지니어링플라스틱(석유화학 · 4조 2교대 주 07:00~19:00/야 19:00~07:00, 별칭 KEP·한엔플·한국엔지니어링)
+   v2.4.0: 가이드 탭 대확장 — 카테고리 칩(전체·전자책 핵심·Q&A 백과·24h 타임라인·러닝·건강)
+           · 전자책 핵심(탄단지 공식·75kg 식단 예시·3/4분할 루틴표·보충제 WPC/WPI·크레아틴)
+           · 교대근무 Q&A 백과 Q1~Q6 · 근무별 24시간 타임라인(주간·야간·오프·3교대 전환)
+           · 심박수 존 러닝(Zone 2/4) · 교대근무 3대 건강 수칙 · 오늘 탭 코칭에서 가이드 바로가기
    =================================================================== */
 (function () {
   'use strict';
@@ -44,6 +48,9 @@
     { id: 'light', name: '밝은 화이트', bg: '#F5F6F8', card: '#FFFFFF', line: '#C7CDD8', accent: '#F2B300' },
     { id: 'navy', name: '네이비 블루', bg: '#0F172A', card: '#16213A', line: '#33456A', accent: '#FFD400' }
   ];
+
+  /* 가이드 카테고리 칩 (v2.4) — index.html의 #gcatChips / .gblock[data-cat]과 짝 */
+  var GCATS = ['all', 'ebook', 'qa', 'timeline', 'run'];
 
   /* 2026~2027 대한민국 법정공휴일 (대체공휴일 포함).
      근거: 「관공서의 공휴일에 관한 규정」 제2조·제3조, 우주항공청 월력요항(2026·2027).
@@ -605,6 +612,7 @@
     groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
     theme: 'dark',
     coachOpen: false,
+    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/timeline/run */
     payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
@@ -629,6 +637,7 @@
       groupOrder: /^[A-E]{2,5}$/.test(String(s.groupOrder || '')) ? s.groupOrder : DEFAULTS.groupOrder,
       theme: ['dark', 'light', 'navy'].indexOf(s.theme) >= 0 ? s.theme : DEFAULTS.theme,
       coachOpen: s.coachOpen === true,
+      guideCat: GCATS.indexOf(s.guideCat) >= 0 ? s.guideCat : 'all',
       payday: (function () {
         var p = s.payday;
         if (p === undefined || p === null) return DEFAULTS.payday;
@@ -939,7 +948,11 @@
     $('coachCards').innerHTML =
       coachCard(ICON.dumbbell, '오늘 운동', c.workout) +
       coachCard(ICON.bowl, '오늘 식단 타이밍', c.diet) +
-      coachCard(ICON.coffee, '카페인 · 수면', c.caffeine);
+      coachCard(ICON.coffee, '카페인 · 수면', c.caffeine) +
+      '<div class="cs-guide">' +
+        '<button class="cs-gbtn" data-gcat="timeline">🕒 오늘 24h 타임라인<span class="ar">→</span></button>' +
+        '<button class="cs-gbtn" data-gcat="qa">❓ Q&amp;A 백과<span class="ar">→</span></button>' +
+      '</div>';
     applyCoachOpen();
 
     /* 체크 상태 — 오늘 탭과 달력 상단 오늘 바를 같이 맞춘다 */
@@ -2045,6 +2058,51 @@
     else if (name === 'calendar') renderCal();
     else if (name === 'log') renderLog();
     else if (name === 'settings') renderSettings();
+    else if (name === 'guide') applyGuideCat(state.guideCat, { persist: false });
+  }
+
+  /* ---------------- 가이드 카테고리 칩 (v2.4) ---------------- */
+  /* 고른 카테고리만 남기고, 그 카테고리의 첫 아코디언을 펼쳐 바로 보여준다.
+     '더 보기(cta)' 블록은 어느 카테고리에서도 항상 남긴다. */
+  function applyGuideCat(cat, opts) {
+    opts = opts || {};
+    if (GCATS.indexOf(cat) < 0) cat = 'all';
+    if (opts.persist !== false) { state.guideCat = cat; save(); }
+
+    var chips = $('gcatChips');
+    if (chips) {
+      Array.prototype.forEach.call(chips.querySelectorAll('[data-gcat]'), function (b) {
+        var on = b.getAttribute('data-gcat') === cat;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    }
+
+    var blocks = document.querySelectorAll('#guideLib .gblock');
+    var first = null;
+    Array.prototype.forEach.call(blocks, function (b) {
+      var c = b.getAttribute('data-cat');
+      var show = cat === 'all' ? true : (c === cat || c === 'cta');
+      b.hidden = !show;
+      if (show && c === cat && !first) first = b;
+    });
+
+    if (first && cat !== 'all') {
+      var d = first.querySelector('details.acc');
+      if (d) d.open = true;
+      if (opts.scroll) {
+        /* 칩 줄이 화면 위쪽에 남도록 그 위치로 — 카테고리를 바꾼 걸 바로 알아보게 */
+        var anchor = document.querySelector('.gcat-bar') || first.querySelector('.sec-head');
+        if (anchor) {
+          var y = anchor.getBoundingClientRect().top + (window.pageYOffset || 0) - 62;
+          window.scrollTo(0, Math.max(0, y));
+        }
+      }
+    }
+  }
+  function openGuideCat(cat) {
+    switchTab('guide');   /* switchTab이 맨 위로 올려준다 — 칩과 섹션 제목이 한 화면에 들어온다 */
+    applyGuideCat(cat);
   }
   function renderAll() {
     renderTop();
@@ -2237,6 +2295,19 @@
     /* 가이드 탭 → 다른 탭으로 */
     document.querySelectorAll('[data-goto]').forEach(function (b) {
       b.addEventListener('click', function () { switchTab(b.dataset.goto); });
+    });
+
+    /* 가이드 카테고리 칩 + 오늘 탭 코칭에서 가이드 바로가기 (v2.4) */
+    document.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-gcat]') : null;
+      if (!b) return;
+      var cat = b.getAttribute('data-gcat');
+      if (b.closest('#gcatChips')) {
+        if (b.classList.contains('on')) return;
+        applyGuideCat(cat, { scroll: true });
+      } else {
+        openGuideCat(cat);
+      }
     });
     $('btnGuideInstall').addEventListener('click', function () { showInstallGuide(); });
 

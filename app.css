@@ -1089,3 +1089,60 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 .img-foot #imgShare{grid-column:1/-1;display:none}
 .img-foot #imgShare:not([hidden]){display:block}
 .img-foot .btn-primary{display:flex;align-items:center;justify-content:center;text-decoration:none}
+
+/* ===================================================================
+   v2.4 추가분 — 가이드 카테고리 칩 · Q번호 · 24h 타임라인 · 존 배지
+   =================================================================== */
+
+/* 카테고리 칩 — 한 줄 가로 스크롤 (손가락으로 밀어서) */
+.gcat-bar{margin:2px 0 0}
+.gcat-chips{
+  flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+  padding:2px 2px 9px;gap:6px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.gcat-chips::-webkit-scrollbar{display:none}
+.gcat-chips .chip{
+  flex:0 0 auto;white-space:nowrap;
+  font-size:11.5px;font-weight:800;padding:7px 11px;border-radius:10px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.gcat-chips .chip:active{transform:scale(.97)}
+.gblock[hidden]{display:none !important}
+#guideLib .gblock > .sec-head:first-child{margin-top:14px}
+
+/* Q&A 번호 배지 */
+.acc-q{
+  flex:0 0 auto;display:grid;place-items:center;
+  min-width:26px;height:22px;padding:0 6px;border-radius:7px;
+  font-size:10.5px;font-weight:900;letter-spacing:-.02em;
+  background:var(--yellow);color:var(--on-accent);
+}
+
+/* 존·경고 배지 (러닝) */
+.rk.z2{color:var(--green);background:rgba(var(--green-rgb),.14)}
+.rk.z4{color:var(--run);background:rgba(var(--run-rgb),.15)}
+.rk.warn{color:var(--hol);background:rgba(var(--hol-rgb),.13)}
+
+/* 24시간 타임라인 */
+.tlines{display:flex;flex-direction:column}
+.tline{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line-soft)}
+.tline:last-child{border-bottom:0;padding-bottom:0}
+.tline:first-child{padding-top:0}
+.tl-time{
+  flex:0 0 44px;font-size:11px;font-weight:800;line-height:1.6;
+  color:var(--yellow-ink2);font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
+.tl-body{flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:var(--txt);font-weight:500}
+.tl-body b{font-weight:800;color:var(--txt-strong)}
+
+/* 오늘 탭 코칭 → 가이드 바로가기 (v2.4) */
+.cs-guide{display:flex;gap:6px;margin:2px 0 8px}
+.cs-gbtn{
+  flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px 6px;border-radius:11px;
+  background:var(--card2);border:1px solid var(--line);
+  font-size:11px;font-weight:800;color:var(--txt2);letter-spacing:-.02em;
+}
+.cs-gbtn:active{transform:scale(.97)}
+.cs-gbtn .ar{font-size:9px;color:var(--muted)}
