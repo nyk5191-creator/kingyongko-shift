@@ -1,0 +1,27 @@
+{
+  "name": "용코교대 — 교대근무 헬스",
+  "short_name": "용코교대",
+  "description": "교대근무표와 오늘 운동·식단·카페인 코칭, 오운완·식단 클린·러닝 기록, 교대근무 가이드, 2026~2027 공휴일까지 한 번에.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D0D0F",
+  "theme_color": "#0D0D0F",
+  "categories": ["health", "productivity", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "오늘",
+      "short_name": "오늘",
+      "url": "./index.html"
+    }
+  ]
+}

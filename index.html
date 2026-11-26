@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>용코교대 — 교대근무 헬스</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D0D0F">
+<meta name="description" content="교대근무표 + 오늘 운동·식단·카페인 코칭 + 오운완·식단 클린·러닝 기록 + 2026~2027 공휴일">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="용코교대">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">용</span>
+      <span class="brand-txt">
+        <b>용코교대</b>
+        <i id="topSub">4조 2교대 · 1조</i>
+      </span>
+    </div>
+    <button class="topbar-btn" id="btnInstallTop" hidden>설치</button>
+  </header>
+
+  <div class="ios-banner" id="iosBanner" hidden>
+    <div class="ios-banner-txt">
+      <b>홈 화면에 추가하면 앱처럼 써요</b>
+      <span>사파리 하단 <b>공유</b> → <b>홈 화면에 추가</b></span>
+    </div>
+    <button class="ios-banner-x" id="iosBannerClose" aria-label="닫기">✕</button>
+  </div>
+
+  <main id="main">
+
+    <!-- ============ 오늘 ============ -->
+    <section class="tab is-active" id="tab-today">
+      <div class="datebar">
+        <div class="d1"><span id="todayDate">—</span><span class="hol-badge" id="todayHol" hidden></span></div>
+        <div class="d2" id="todaySub">—</div>
+      </div>
+
+      <div class="shift-card" id="todayShiftCard"></div>
+
+      <div class="card check-card">
+        <div class="check-title">
+          <span>오늘 체크</span>
+          <i id="checkStreak"></i>
+        </div>
+        <div class="check-row">
+          <button class="big-check" id="btnWorkout" data-k="workout">
+            <span class="ic" data-icon="dumbbell"></span>
+            <span class="lbl">오운완</span>
+            <span class="state">미체크</span>
+          </button>
+          <button class="big-check" id="btnClean" data-k="clean">
+            <span class="ic" data-icon="bowl"></span>
+            <span class="lbl">식단 클린</span>
+            <span class="state">미체크</span>
+          </button>
+        </div>
+        <div class="run-row">
+          <span class="run-lbl">🏃 오늘 러닝</span>
+          <input class="run-in" id="runInput" type="number" step="0.1" min="0" max="200" inputmode="decimal"
+                 placeholder="0.0" autocomplete="off" aria-label="오늘 러닝 거리(km)">
+          <span class="run-unit">km</span>
+        </div>
+        <input class="line-memo" id="memoInput" type="text" maxlength="80"
+               placeholder="한 줄 메모 — 예: 스쿼트 100kg 5회 성공" autocomplete="off">
+      </div>
+
+      <div class="coach-head">
+        <span class="coach-bar"></span>
+        <div class="coach-head-txt">
+          <b>오늘 킹용코 코칭</b>
+          <i>헬스 12년차 · 교대근무 기준</i>
+        </div>
+        <span class="coach-chip" id="coachChip">—</span>
+      </div>
+
+      <div id="coachCards"></div>
+
+      <div class="sec-head">
+        <span>앞뒤 7일 근무표</span>
+        <span class="sub">내 조 + 전체 조</span>
+      </div>
+      <div class="card week-card">
+        <div class="week-grid" id="weekGrid"></div>
+        <div class="week-legend">
+          <span class="lg"><i class="dotc d">주</i>주간</span>
+          <span class="lg"><i class="dotc a">오</i>오후</span>
+          <span class="lg"><i class="dotc n">야</i>야간</span>
+          <span class="lg"><i class="dotc o">휴</i>휴무</span>
+          <span class="lg mine">▮ 내 조</span>
+        </div>
+      </div>
+
+      <div class="foot-note">용코교대 v2.0 · 기록은 이 기기에만 저장됩니다</div>
+    </section>
+
+    <!-- ============ 달력 ============ -->
+    <section class="tab" id="tab-calendar">
+      <div class="datebar">
+        <div class="d1">달력</div>
+        <div class="d2">날짜를 누르면 그날 기록을 고칩니다</div>
+      </div>
+
+      <div class="card cal-card">
+        <div class="seg" id="calViewSeg" role="tablist" aria-label="달력 보기">
+          <button class="seg-b is-on" data-calview="month" role="tab">내 달력</button>
+          <button class="seg-b" data-calview="all" role="tab">전체 조</button>
+        </div>
+        <div class="cal-head">
+          <button class="cal-nav" id="calPrev" aria-label="이전 달">‹</button>
+          <div class="cal-title" id="calTitle">—</div>
+          <button class="cal-nav" id="calNext" aria-label="다음 달">›</button>
+        </div>
+
+        <div id="calMonthView">
+          <div class="cal-dow">
+            <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-legend">
+            <span class="lg"><i class="pt y"></i>오운완</span>
+            <span class="lg"><i class="pt g"></i>식단 클린</span>
+            <span class="lg"><i class="pt w"></i>체중</span>
+            <span class="lg"><i class="pt r"></i>러닝</span>
+          </div>
+          <div class="cal-note">빨간 날짜 = 법정공휴일 (2026~2027 · 대체공휴일 포함). 임시공휴일은 반영되지 않습니다.</div>
+        </div>
+
+        <div id="calAllView" hidden>
+          <div class="cal-all" id="calAll"></div>
+          <div class="cal-legend">
+            <span class="lg"><i class="dotc d">주</i>주간</span>
+            <span class="lg"><i class="dotc a">오</i>오후</span>
+            <span class="lg"><i class="dotc n">야</i>야간</span>
+            <span class="lg"><i class="dotc o">휴</i>휴무</span>
+            <span class="lg mine">▮ 내 조</span>
+          </div>
+          <div class="cal-note">주 단위로 1조부터 전체 조 근무표를 비교합니다. 오늘 칸은 파란 테두리, 내 조는 노란 배경입니다.</div>
+        </div>
+      </div>
+
+      <div class="sec-head"><span>이 달 요약</span><span class="sub" id="calHolSub"></span></div>
+      <div class="stat-grid" id="calStats"></div>
+    </section>
+
+    <!-- ============ 기록 ============ -->
+    <section class="tab" id="tab-log">
+      <div class="datebar">
+        <div class="d1">기록</div>
+        <div class="d2">체중 · 러닝 거리 · 운동 부위 · 식단 메모</div>
+      </div>
+
+      <div class="stat-grid" id="logStats"></div>
+
+      <div class="card chart-card">
+        <div class="card-head">
+          <b>체중 추이</b>
+          <span class="sub" id="chartSub">최근 기록</span>
+        </div>
+        <div id="weightChart" class="chart-box"></div>
+      </div>
+
+      <div class="sec-head">
+        <span>날짜별 기록</span>
+        <button class="mini-btn" id="btnAddLog">+ 기록 추가</button>
+      </div>
+      <div id="logList"></div>
+    </section>
+
+    <!-- ============ 가이드 ============ -->
+    <section class="tab" id="tab-guide">
+      <div class="datebar">
+        <div class="d1">가이드</div>
+        <div class="d2">10초 사용법 · 교대근무 백과 · 킹용코</div>
+      </div>
+
+      <!-- ① 10초 사용 설명서 -->
+      <div class="sec-head"><span>① 10초 사용 설명서</span><span class="sub">어르신·초보자용</span></div>
+
+      <div class="steps">
+        <div class="step">
+          <span class="step-no">1</span>
+          <div class="step-body">
+            <div class="step-tt">[설정]에서 내 교대 고르고<br><em>'오늘 내 근무'</em> 한 개만 누르기</div>
+            <div class="step-desc">교대 형태(4조 2교대 등)와 내 조를 고른 다음, 오늘 내 근무 버튼 <b>하나만</b> 누르면 끝. 날짜 계산은 앱이 알아서 합니다.</div>
+            <button class="step-go" data-goto="settings">설정 열기 →</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-no">2</span>
+          <div class="step-body">
+            <div class="step-tt">[오늘]에서 코칭 보고<br><em>'오운완 · 식단 클린'</em> 누르기</div>
+            <div class="step-desc">오늘 근무에 맞는 운동·식단·카페인 코칭이 저절로 뜹니다. 운동했으면 <b>오운완</b>, 식단 지켰으면 <b>식단 클린</b>, 뛰었으면 <b>러닝 km</b>를 적어두세요.</div>
+            <button class="step-go" data-goto="today">오늘 열기 →</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-no">3</span>
+          <div class="step-body">
+            <div class="step-tt">홈 화면에 추가하면<br><em>앱처럼</em> 씁니다</div>
+            <div class="step-desc">한 번만 추가해두면 인터넷 없어도 열리고, 매번 주소 칠 필요도 없습니다.</div>
+            <div class="os-two">
+              <div class="os-card">
+                <b>아이폰 (사파리)</b>
+                <span>아래 <em>공유</em> 버튼(□↑) → 목록 내려서 <em>홈 화면에 추가</em> → <em>추가</em></span>
+              </div>
+              <div class="os-card">
+                <b>갤럭시 (크롬)</b>
+                <span>오른쪽 위 <em>⋮</em> → <em>홈 화면에 추가</em> → <em>추가</em></span>
+              </div>
+            </div>
+            <button class="step-go" id="btnGuideInstall">설치 방법 다시 보기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ② 교대근무 백과 -->
+      <div class="sec-head"><span>② 교대근무 백과</span><span class="sub">눌러서 펼치기</span></div>
+
+      <details class="acc" open>
+        <summary>
+          <span class="acc-em">🏋️</span>
+          <span class="acc-t">교대별 최적 분할</span>
+          <span class="acc-tag">헬스</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">주 3~4회면 충분하다. 중요한 건 <b>'무슨 날에 무게를 치느냐'</b>다. 오프 날 안 치면 주간·야간은 유지만 된다.</div>
+
+          <div class="acc-kv"><b>4조 2교대</b><span>주·주·오·오·야·야·오·오 (8일)</span></div>
+          <div class="rows">
+            <div class="r"><span class="rk o">오프 1일차</span><span class="rv"><b>하체</b> — 스쿼트·데드·레그프레스 5~8회 × 4~5세트, 90분</span></div>
+            <div class="r"><span class="rk o">오프 2일차</span><span class="rv"><b>상체</b> — 벤치·풀업·숄더프레스 6~10회 × 4세트 + 유산소 20분</span></div>
+            <div class="r"><span class="rk d">주간 2일</span><span class="rv">회복 세션 — 머신 3~4종 8~12회 × 3세트, 30~40분</span></div>
+            <div class="r"><span class="rk n">야간 2일</span><span class="rv">기상 <b>60분 안</b>에 복합 4~5종, 8~10회 × 3세트</span></div>
+          </div>
+
+          <div class="acc-kv"><b>3조 2교대</b><span>주·주·야·야·비·휴 (6일)</span></div>
+          <div class="rows">
+            <div class="r"><span class="rk o">비·휴 첫날</span><span class="rv"><b>하체 고강도</b> — 5~8회 × 4세트</span></div>
+            <div class="r"><span class="rk o">비·휴 둘째날</span><span class="rv"><b>상체</b> + 유산소 20분</span></div>
+            <div class="r"><span class="rk d">주간 2일</span><span class="rv">회복 30분 또는 완전 휴식 (6일 주기는 짧다)</span></div>
+            <div class="r"><span class="rk n">야간 2일</span><span class="rv">기상 후 60분, 복합 3~4종</span></div>
+          </div>
+
+          <div class="acc-kv"><b>4조 3교대</b><span>주·주·오·오·야·야·휴·휴 (8일)</span></div>
+          <div class="rows">
+            <div class="r"><span class="rk a">오후 2일</span><span class="rv">오전이 운동 창 — 09:30~10:30, 60분 (근무 3시간 전 종료)</span></div>
+            <div class="r"><span class="rk o">휴무 2일</span><span class="rv">하체 → 상체 순서로 고강도 2회</span></div>
+            <div class="r"><span class="rk d">주간 2일</span><span class="rv">회복 30~40분, 머신 위주</span></div>
+            <div class="r"><span class="rk n">야간 2일</span><span class="rv">기상 후 60분, 3~4종으로 줄여서</span></div>
+          </div>
+
+          <div class="acc-kv"><b>2조 2교대</b><span>주·야 반복 (2일)</span></div>
+          <div class="rows">
+            <div class="r"><span class="rk a">원칙</span><span class="rv">12시간 격일은 <b>회복이 최우선</b>. 주 2~3회, 45~60분 전신 3종이면 충분</span></div>
+            <div class="r"><span class="rk d">주간 다음 날</span><span class="rv">완전 휴식 또는 걷기 20~30분</span></div>
+            <div class="r"><span class="rk n">야간 다음 날</span><span class="rv">수면 먼저. 자고 일어나 45분 자극</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">🌙</span>
+          <span class="acc-t">야간 퇴근 후 아침 — 먹고 잘까? 굶고 잘까?</span>
+          <span class="acc-tag">야간</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">정답은 <b>"오늘 운동했냐"</b>로 갈린다. 둘 다 아니고 밥부터 먹으면 그날 잠은 끝난다.</div>
+          <div class="rows">
+            <div class="r"><span class="rk o">운동 안 한 날</span><span class="rv"><b>단백질 30~40g만.</b> 프로틴 1잔(물) 또는 계란 3개 + 우유 200ml. 탄수는 최소로.</span></div>
+            <div class="r"><span class="rk a">운동한 날</span><span class="rv"><b>단백질 40g + 흡수 빠른 탄수 소량</b>(바나나 반 개·흰쌀밥 3~4숟가락). 먹고 <b>1시간 뒤</b> 취침.</span></div>
+            <div class="r"><span class="rk d">먹는 순서</span><span class="rv">물 200~300ml → 단백질 → 탄수. 물을 벌컥 마시면 화장실 때문에 깨서 잠이 끊긴다.</span></div>
+            <div class="r"><span class="rk n">절대 금지</span><span class="rv">라면·빵·국밥·배달. 위산 역류 + 혈당 스파이크로 3시간 뒤에 확 깬다.</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">🏃</span>
+          <span class="acc-t">야간 직후 운동 vs 자고 출근 전 운동</span>
+          <span class="acc-tag">야간</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">결론은 <b>자고 일어나서 출근 전</b>. 퇴근 직후 운동은 '보너스'지 '본 운동'이 아니다.</div>
+          <div class="rows">
+            <div class="r"><span class="rk o">1순위</span><span class="rv">수면 후 출근 전 — 기상 60분 안에 착수, 60분 안에 끝낸다</span></div>
+            <div class="r"><span class="rk a">부득이 퇴근 직후</span><span class="rv"><b>카페인 금지.</b> 자극 위주 30~40분 — 맨몸·머신 12~15회, 힘든 정도 6~7할. 유산소는 20분까지</span></div>
+            <div class="r"><span class="rk n">금지</span><span class="rv">퇴근 직후 인터벌·전력 질주·최대 중량 시도. 밤샘 뒤엔 심박·코르티솔이 이미 높다</span></div>
+            <div class="r"><span class="rk d">판단법</span><span class="rv">눈이 시리고 손이 떨리면 오늘은 <b>걷기 20분</b>으로 끝낸다. 그게 이득이다</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">🥩</span>
+          <span class="acc-t">교대근무 식단·카페인 4원칙</span>
+          <span class="acc-tag">식단</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="rows">
+            <div class="r"><span class="rk num">1</span><span class="rv"><b>단백질 = 체중×1.6~2g</b> — 75kg이면 120~150g. 한 끼 30g씩 3~4번 나눠 먹는다. 몰아 먹으면 야간에 무너진다</span></div>
+            <div class="r"><span class="rk num">2</span><span class="rv"><b>카페인은 취침 6~8시간 전 컷</b> — 야간조 새벽 2시, 주간조 14시, 오후조 18시</span></div>
+            <div class="r"><span class="rk num">3</span><span class="rv"><b>탄수는 근무 전후에 몰아라</b> — 근무 중 탄수가 없으면 21시에 편의점으로 간다</span></div>
+            <div class="r"><span class="rk num">4</span><span class="rv"><b>물 2.5~3L</b> — 나트륨 줄이고 칼륨(바나나·토마토) 늘린다. 카페인 1잔당 물 1잔 추가</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">😴</span>
+          <span class="acc-t">수면·생체리듬 관리</span>
+          <span class="acc-tag">일반·4050</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">헬스 안 해도 이 4개는 해야 한다. 4050은 여기서 <b>혈압·혈당</b>이 갈린다.</div>
+          <div class="rows">
+            <div class="r"><span class="rk n">햇빛 차단</span><span class="rv">야간 퇴근 후 <b>선글라스 + 암막커튼 + 수면안대</b>. 밝은 빛 10분이 잠을 1~2시간 밀어낸다</span></div>
+            <div class="r"><span class="rk n">90분 단위</span><span class="rv">4시간 30분 / 6시간 / 7시간 30분으로 자라. <b>최소 6시간</b>은 확보 — 4시간 반 이하가 반복되면 혈압·혈당에 바로 온다</span></div>
+            <div class="r"><span class="rk d">기상 직후</span><span class="rv"><b>15분 햇빛</b>(베란다라도). 멜라토닌이 리셋돼서 오늘 밤 잠이 제때 온다</span></div>
+            <div class="r"><span class="rk o">잠들기 전</span><span class="rv">폰 끄고 방 온도 18~20도. 낮잠은 <b>20분</b>까지 — 길면 다음 근무가 망가진다</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">🫀</span>
+          <span class="acc-t">위장·혈당·피로 관리</span>
+          <span class="acc-tag">일반·4050</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">새벽 야식은 <b>혈당·체중·역류성 식도염</b>의 주원인이다. 밤 12~4시는 인슐린 감수성이 가장 떨어져서 같은 음식도 더 찐다.</div>
+          <div class="rows">
+            <div class="r"><span class="rk n">새벽 야식</span><span class="rv">라면·빵·국밥은 교대근무자에게 최악. 먹고 2시간 뒤 속이 쓰리고 배가 부어 잠을 못 잔다</span></div>
+            <div class="r"><span class="rk o">새벽 대체</span><span class="rv"><b>따뜻한 물·차 + 가벼운 단백질·견과류</b> — 삶은 계란, 그릭요거트, 아몬드 한 줌</span></div>
+            <div class="r"><span class="rk a">퇴근 후 식사</span><span class="rv">먹었으면 <b>최소 1시간 뒤</b> 취침. 베개를 살짝 높이고 누워라(역류 방지)</span></div>
+            <div class="r"><span class="rk d">4050</span><span class="rv">야간 후 <b>공복 12시간 이상</b>은 두지 마라. 아침은 가볍게라도 챙겨라 — 담석·근손실이 온다</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">💊</span>
+          <span class="acc-t">기본 영양제·수분</span>
+          <span class="acc-tag">일반·4050</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">영양제는 '대체'가 아니다. 잠 못 자는 걸 영양제로 못 메운다. 질환·복용약이 있으면 <b>의사·약사와 먼저 상의</b>.</div>
+          <div class="rows">
+            <div class="r"><span class="rk d">비타민D</span><span class="rv">실내·밤 근무면 거의 다 부족. <b>1000~2000IU/일</b>, 지용성이라 식후에</span></div>
+            <div class="r"><span class="rk n">마그네슘</span><span class="rv">수면·근육 이완. 자기 전 <b>200~300mg</b> (글리시네이트·말레이트 형태)</span></div>
+            <div class="r"><span class="rk a">오메가3</span><span class="rv">혈관·중성지방·피로. <b>EPA+DHA 1000mg/일</b>, 식후</span></div>
+            <div class="r"><span class="rk o">야간 중 물</span><span class="rv"><b>1.5~2L</b>를 30~40분마다 반 컵씩 나눠 마신다. 한 번에 벌컥이면 화장실만 간다</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <span class="acc-em">👟</span>
+          <span class="acc-t">교대근무자 러닝·유산소 가이드</span>
+          <span class="acc-tag">러닝</span>
+          <span class="acc-ar">⌄</span>
+        </summary>
+        <div class="acc-body">
+          <div class="acc-note">러닝은 <b>'언제 뛰느냐'</b>가 전부다. 같은 5km도 야간 퇴근 직후에 뛰면 몸에 손해다.</div>
+          <div class="rows">
+            <div class="r"><span class="rk o">오프·휴무</span><span class="rv"><b>5~10km 본 러닝 또는 인터벌</b> 최적일. 충분히 잔 뒤(기상 2시간 이후) 시작</span></div>
+            <div class="r"><span class="rk n">야간 출근 전</span><span class="rv">기상 후 <b>30~40분 가벼운 조깅</b> — 옆 사람과 대화 가능한 속도. 순환·컨디션 올리기</span></div>
+            <div class="r"><span class="rk a">피해야 할 때</span><span class="rv">야간 퇴근 직후 밤샘 피로 상태의 <b>고강도 인터벌·전력 질주 금지</b>. 심박·코르티솔 과부하 + 수면 방해</span></div>
+            <div class="r"><span class="rk d">대신</span><span class="rv">그 시간엔 <b>30분 걷기</b>나 완전 휴식. 그게 이득이다</span></div>
+            <div class="r"><span class="rk o">주간 예시</span><span class="rv">4조 2교대 — 오프1 인터벌 400m × 6~8 · 오프2 10km 롱런 · 야간 조깅 30분 · 주간 걷기</span></div>
+            <div class="r"><span class="rk d">4050</span><span class="rv">주 3회부터. 무릎·발목이 아프면 거리 대신 <b>시간(20~30분)</b>으로 줄인다</span></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- ③ CTA -->
+      <div class="sec-head"><span>③ 더 보기</span></div>
+      <a class="cta-card" href="https://litt.ly/kingyongko" target="_blank" rel="noopener noreferrer">
+        <span class="cta-em">📘</span>
+        <span class="cta-t"><b>39p 전체 가이드북 보기</b><i>12년차 헬스직장인 초보자가이드북 · 리틀리</i></span>
+        <span class="cta-ar">↗</span>
+      </a>
+      <a class="cta-card" href="https://www.instagram.com/kingyongko/" target="_blank" rel="noopener noreferrer">
+        <span class="cta-em">📸</span>
+        <span class="cta-t"><b>킹용코 인스타그램</b><i>@kingyongko</i></span>
+        <span class="cta-ar">↗</span>
+      </a>
+
+      <div class="foot-note">용코교대 v2.0 · 킹용코</div>
+    </section>
+
+    <!-- ============ 설정 ============ -->
+    <section class="tab" id="tab-settings">
+      <div class="datebar">
+        <div class="d1">설정</div>
+        <div class="d2">교대 형태를 바꾸면 모든 탭에 바로 반영됩니다</div>
+      </div>
+
+      <div class="sec-head"><span>교대 형태</span></div>
+      <div class="preset-list" id="presetList"></div>
+
+      <div class="card">
+        <div class="field">
+          <label>내 조</label>
+          <div class="chips" id="groupChips"></div>
+        </div>
+      </div>
+
+      <div class="sec-head"><span>오늘 내 근무</span><span class="sub">버튼 하나만 누르면 끝</span></div>
+      <div class="card setup-card">
+        <div class="setup-lead">오늘 내가 무슨 근무인지 <b>하나만</b> 누르세요.<br>기준일은 앱이 알아서 계산합니다.</div>
+        <div class="today-pick" id="todayPick"></div>
+        <div class="field-note" id="todayPickNote"></div>
+      </div>
+
+      <div class="sec-head"><span>기준일 직접 입력</span><span class="sub">보조 옵션</span></div>
+      <div class="card">
+        <div class="field">
+          <label>기준일 <i>이 날이 내 주기의 1일째</i></label>
+          <input type="date" id="anchorInput" class="input">
+        </div>
+        <div class="field-note" id="cyclePreview"></div>
+      </div>
+
+      <div class="sec-head"><span>커스텀 주기</span></div>
+      <div class="card">
+        <div class="field">
+          <label>주기 문자열 <i>쉼표로 구분</i><button class="link-btn" id="btnFillCycle">현재 주기 넣기</button></label>
+          <input type="text" id="customInput" class="input" placeholder="주,주,휴,휴,야,야,휴,휴" autocomplete="off">
+          <div class="help">쓸 수 있는 값 — <b>주</b> 주간 · <b>오</b> 오후 · <b>야</b> 야간 · <b>휴</b> 휴무(비번·오프)</div>
+        </div>
+        <div class="field">
+          <label>커스텀 조 수</label>
+          <div class="chips" id="customGroupChips"></div>
+        </div>
+        <button class="btn-primary full" id="btnApplyCustom">커스텀 주기 적용</button>
+        <div class="field-note err" id="customErr" hidden></div>
+      </div>
+
+      <div class="sec-head"><span>근무 시간</span></div>
+      <div class="card">
+        <div class="time-row"><span class="tl d">주간</span><input type="time" class="input t" id="tD_s"><span class="tilde">~</span><input type="time" class="input t" id="tD_e"></div>
+        <div class="time-row"><span class="tl a">오후</span><input type="time" class="input t" id="tA_s"><span class="tilde">~</span><input type="time" class="input t" id="tA_e"></div>
+        <div class="time-row"><span class="tl n">야간</span><input type="time" class="input t" id="tN_s"><span class="tilde">~</span><input type="time" class="input t" id="tN_e"></div>
+        <div class="help">회사 시간표에 맞게 고치세요. 야간은 자정을 넘겨도 됩니다. (기본값: 4조 2교대 기준)</div>
+      </div>
+
+      <div class="sec-head"><span>앱 · 데이터</span></div>
+      <div class="card">
+        <button class="row-btn" id="btnInstallGuide">홈 화면에 추가하는 법 보기</button>
+        <button class="row-btn" id="btnSetupAgain">'오늘 내 근무' 다시 설정하기</button>
+        <button class="row-btn" id="btnExport">기록 백업 (JSON 저장)</button>
+        <button class="row-btn danger" id="btnReset">모든 데이터 초기화</button>
+        <div class="help">기록은 이 브라우저(localStorage)에만 저장됩니다. 백업 없이 브라우저 데이터를 지우면 기록도 사라집니다.</div>
+      </div>
+
+      <div class="foot-note">용코교대 v2.0 · 킹용코</div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tabbtn is-active" data-tab="today">
+      <span class="ti" data-icon="clock"></span><span>오늘</span>
+    </button>
+    <button class="tabbtn" data-tab="calendar">
+      <span class="ti" data-icon="calendar"></span><span>달력</span>
+    </button>
+    <button class="tabbtn" data-tab="log">
+      <span class="ti" data-icon="chart"></span><span>기록</span>
+    </button>
+    <button class="tabbtn" data-tab="guide">
+      <span class="ti" data-icon="book"></span><span>가이드</span>
+    </button>
+    <button class="tabbtn" data-tab="settings">
+      <span class="ti" data-icon="sliders"></span><span>설정</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 날짜 상세 시트 -->
+<div class="sheet-wrap" id="sheetWrap">
+  <div class="sheet-backdrop" data-close="1"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="날짜 상세">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-date" id="sheetDate">—</div>
+        <div class="sheet-sub" id="sheetShift">—</div>
+        <span class="sheet-hol" id="sheetHol" hidden></span>
+      </div>
+      <button class="sheet-x" data-close="1" aria-label="닫기">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div id="sheetCoach"></div>
+
+      <div class="check-row tight">
+        <button class="big-check" id="sheetWorkout" data-k="workout">
+          <span class="ic" data-icon="dumbbell"></span><span class="lbl">오운완</span><span class="state">미체크</span>
+        </button>
+        <button class="big-check" id="sheetClean" data-k="clean">
+          <span class="ic" data-icon="bowl"></span><span class="lbl">식단 클린</span><span class="state">미체크</span>
+        </button>
+      </div>
+
+      <div class="field-2">
+        <div class="field">
+          <label>체중 (kg)</label>
+          <input type="number" id="sheetWeight" class="input" step="0.1" inputmode="decimal" placeholder="예: 74.8">
+        </div>
+        <div class="field">
+          <label>러닝 (km)</label>
+          <input type="number" id="sheetRun" class="input" step="0.1" inputmode="decimal" placeholder="예: 5.2">
+        </div>
+      </div>
+      <div class="field">
+        <label>운동 부위</label>
+        <div class="chips" id="sheetParts"></div>
+      </div>
+      <div class="field">
+        <label>운동 · 식단 메모</label>
+        <textarea id="sheetMemo" class="input" rows="3" maxlength="200" placeholder="예: 하체 90분, 스쿼트 100kg 5회. 식단은 도시락 2끼 + 프로틴 2잔"></textarea>
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn-ghost" id="sheetDelete">이 날 기록 삭제</button>
+        <button class="btn-primary" id="sheetSave">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 첫 방문 · 10초 세팅 -->
+<div class="sheet-wrap" id="setupWrap">
+  <div class="sheet-backdrop"></div>
+  <div class="sheet setup-sheet" role="dialog" aria-modal="true" aria-label="10초 세팅">
+    <div class="sheet-grip"></div>
+    <div class="setup-head">
+      <span class="setup-badge">10초 세팅</span>
+      <b>오늘 내 근무만 눌러주세요</b>
+      <span>날짜 계산 안 해도 됩니다. 나머지는 앱이 맞춥니다.</span>
+    </div>
+    <div class="setup-body">
+      <div class="setup-step"><span class="sn">1</span><b>교대 형태</b></div>
+      <div class="chips" id="setupPresets"></div>
+      <div class="setup-step"><span class="sn">2</span><b>내 조</b></div>
+      <div class="chips" id="setupGroups"></div>
+      <div class="setup-step"><span class="sn">3</span><b>오늘 내 근무</b></div>
+      <div class="today-pick" id="setupPick"></div>
+      <div class="setup-note">나중에 [설정] 탭에서 언제든 다시 바꿀 수 있습니다.</div>
+    </div>
+    <div class="setup-foot">
+      <button class="btn-primary full" id="setupDone">시작하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
