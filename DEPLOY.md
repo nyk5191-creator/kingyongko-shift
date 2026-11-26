@@ -30,7 +30,7 @@ git add -A && git commit -m "feat: ..." && git push origin main
 ## v2.4.0 (2026-11-27)
 - **가이드 탭 대확장** — 카테고리 칩 `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🕒 24h 타임라인 | 🏃 러닝·건강`(`#gcatChips`, 블록은 `.gblock[data-cat]`). 칩을 고르면 해당 블록만 남고 첫 아코디언이 자동으로 펼쳐지며, 선택은 `state.guideCat`으로 localStorage에 저장.
   - 전자책 핵심 5개(탄단지 공식+75kg 식단 예시 · 3/4분할 루틴표 · 교대별 최적 분할 · 식단·카페인 4원칙 · 보충제 WPC/WPI·크레아틴) · Q&A Q1~Q6 · 타임라인 4개(주간·야간·오프·3교대 전환) · 러닝·건강 5개(Zone2/4 · 러닝 가이드 · 3대 건강 수칙 · 수면 · 위장·혈당).
-- **오늘 탭 연동** — 코칭 `자세히` 아래 `.cs-guide` 버튼 2개(24h 타임라인·Q&A)。 `data-gcat` 위임 클릭으로 `openGuideCat()` → 가이드 탭 전환+카테고리 적용.
+- **오늘 탭 연동** — 코칭 `자세히` 아래 `.cs-guide` 버튼 2개(24h 타임라인·Q&A). `data-gcat` 위임 클릭으로 `openGuideCat()` → 가이드 탭 전환+카테고리 적용.
 - `app.js` `GCATS`·`applyGuideCat()`·`openGuideCat()` 추가, `renderTab('guide')`에서 저장된 칩 복원. `app.css`에 `.gcat-chips`(가로 스크롤)·`.acc-q`·`.rk.z2/z4/warn`·`.tlines/.tline`·`.cs-gbtn` 추가. `sw.js` `VERSION = '2.4.0'`.
 - 검수(2026-11-27 · Pages `built` 2b256ec): 라이브 HTTP 200 — `/`·`/index.html` 71,660B, `app.js?v=2.4.0` 114,826B, `app.css?v=2.4.0` 56,379B, `sw.js` 2,970B, `manifest.json` 930B. MD5 일치 — `index.html` `7eca26d7`, `app.js` `ff84d1dd`, `app.css` `897d344c`, `sw.js` `8b86898a`. 버전 문자열 확인 — `sw.js` `VERSION = '2.4.0'`, 라이브 `index.html` `app.js?v=2.4.0`·`교대핏 v2.4.0`, `app.js`에 `applyGuideCat`·`data-gcat`. 콘텐츠 확인 — 라이브 `index.html`에 `data-gcat` 5개 칩, `acc-q">Q1`~`Q6`, `식단·탄단지 계산 공식`·`심박수 존 러닝 가이드`·`교대근무 3대 건강 수칙`·`24시간 타임라인` 문자열 존재.
 - JS 문법: `esprima.parseScript` 통과(`app.js`·`sw.js`), CSS 중괄호 544/544, HTML 태그 밸런스 검사 통과. Playwright 브라우저 검수는 로컬 chromium 라이브러리 부재(libnspr4.so)로 미실시 — 정적 검사+라이브 HTTP로 대체.
