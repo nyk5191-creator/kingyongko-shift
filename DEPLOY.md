@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.3.2`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.4.1`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,16 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.4.1 (2026-11-27) — 24h 타임라인 제거
+- **가이드에서 24h 타임라인 삭제** — 카테고리 칩 `🕒 24h 타임라인` 제거(칩 5개 → 4개: `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🏃 러닝·건강`), `index.html`의 `<div class="gblock" data-cat="timeline">` 블록(주간·야간·오프·3교대 전환 4개 아코디언, 6,910B) 통째로 삭제, 가이드 날짜바 설명 문구에서도 '24시간 타임라인' 뺌.
+- **오늘 탭 코칭 바로가기** — `.cs-guide`의 `🕒 오늘 24h 타임라인` 버튼을 **`📕 전자책 핵심`**으로 교체(`data-gcat="ebook"`), `❓ Q&A 백과`는 유지. `openGuideCat()` 위임 클릭 로직은 그대로.
+- **저장값 폴백** — `app.js` `GCATS = ['all','ebook','qa','run']`. `load()`의 `GCATS.indexOf(s.guideCat) >= 0 ? ... : 'all'`, `applyGuideCat()`의 `GCATS.indexOf(cat) < 0 → 'all'` 두 곳에서 기존 `guideCat='timeline'`이 'all'로 떨어짐(빈 가이드 화면 방지).
+- `app.css`에서 미사용 `.tlines/.tline/.tl-time/.tl-body` 규칙(540B) 삭제, v2.4 추가분 주석도 정리.
+- `?v=2.4.1` 캐시버스트(index.html 6곳) · `sw.js` `VERSION = '2.4.1'` / `CACHE = yongko-shift-v2.4.1` · 하단 표기 `교대핏 v2.4.1`(3곳). README도 v2.4.1 절 추가.
+- 배포: 커밋 `f1510e9` → Pages `built`. 검수(2026-11-27 04:15 KST): 라이브 HTTP 200 — `/`·`/index.html` 62,676B, `app.js?v=2.4.1` 115,056B, `app.css?v=2.4.1` 55,849B, `sw.js` 2,970B, `manifest.json` 930B, `icon-192.png` 39,476B. MD5 일치 — `index.html` `8d4b28af`, `app.js` `95b7f145`, `app.css` `9f9fc637`, `sw.js` `f4a94a38`. 버전 문자열 — 라이브 `index.html` `2.4.1` 9곳·`교대핏 v2.4.1` 3곳, `sw.js` `VERSION = '2.4.1'`, `app.js` `GCATS = ['all','ebook','qa','run']`·`data-gcat="ebook"` 버튼 2개.
+- 콘텐츠 확인 — 라이브 `index.html`에 `timeline` 0건·`타임라인` 0건, `data-gcat` 칩 4개(`all`·`ebook`·`qa`·`run`), `gblock` 5개(`start`·`ebook`·`qa`·`run`·`cta`). `app.js`에 남은 `timeline` 2건은 주석(변경 이력)뿐.
+- JS 문법: `esprima.parseScript` 통과(`app.js` 103,223B · `sw.js`) — node 없음. CSS 중괄호 537/537, HTML 태그 밸런스 오류 0건. Playwright는 이번에도 미실시(브리프 "Playwright 불필요").
 
 ## v2.4.0 (2026-11-27)
 - **가이드 탭 대확장** — 카테고리 칩 `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🕒 24h 타임라인 | 🏃 러닝·건강`(`#gcatChips`, 블록은 `.gblock[data-cat]`). 칩을 고르면 해당 블록만 남고 첫 아코디언이 자동으로 펼쳐지며, 선택은 `state.guideCat`으로 localStorage에 저장.
