@@ -6,7 +6,7 @@
                 실패(오프라인)일 때만 캐시 폴백 → 구버전 CSS/JS가 섞이는 현상 원천 차단
 */
 var VERSION = '2.5.3';
-var CACHE = 'yongko-shift-v' + VERSION;
+var CACHE = 'yongko-shift-v2.5.3';   /* VERSION 올릴 때 여기도 같이 */
 var ASSETS = [
   './',
   './index.html',
