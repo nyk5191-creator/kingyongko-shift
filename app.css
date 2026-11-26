@@ -144,9 +144,8 @@ sub{font-size:inherit}
 .brand{display:flex;align-items:center;gap:10px}
 .brand-mark{
   width:30px;height:30px;border-radius:9px;flex:0 0 auto;
-  background:var(--yellow);color:var(--on-accent);
-  display:grid;place-items:center;font-weight:800;font-size:15px;
-  box-shadow:0 0 0 1px rgba(var(--accent-rgb),.35),0 6px 16px rgba(var(--accent-rgb),.18);
+  display:block;object-fit:cover;background:#05060A;
+  box-shadow:0 0 0 1px rgba(255,255,255,.10),0 6px 16px rgba(0,0,0,.45);
 }
 .brand-txt{display:flex;flex-direction:column;line-height:1.15}
 .brand-txt b{font-size:16px;font-weight:800;letter-spacing:-.02em}

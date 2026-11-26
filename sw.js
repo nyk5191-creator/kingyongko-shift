@@ -1,11 +1,11 @@
-/* 교대핏 service worker v2.3.1
+/* 교대핏 service worker v2.3.2
    목표: 온라인에서는 항상 최신 파일, 오프라인에서는 앱 껍데기 캐시
    - install  : 새 캐시에 자산을 미리 담고 바로 대기 해제(skipWaiting)
    - activate : 구버전 캐시(yongko-shift-*) 전부 삭제 + clients.claim()
    - fetch    : 같은 출처는 네트워크 우선(Network-First). 성공하면 캐시 갱신 후 반환,
                 실패(오프라인)일 때만 캐시 폴백 → 구버전 CSS/JS가 섞이는 현상 원천 차단
 */
-var VERSION = '2.3.1';
+var VERSION = '2.3.2';
 var CACHE = 'yongko-shift-v' + VERSION;
 var ASSETS = [
   './',
