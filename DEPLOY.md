@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.3`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.4`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,17 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.4 (2026-11-27) — 앞뒤 7일 근무표 '오늘' 열 강조
+- `오늘` 탭 `앞뒤 7일 근무표`의 오늘 날짜 열을 **헤더 ~ 마지막 조까지 한 줄로 이어지는 세로 강조 밴드**로 바꿈. 셀마다 끊긴 `.wk-cell.today` 배경은 삭제.
+  - `.week-grid::before`(position:absolute, z-index:0) + `.week-grid > *{position:relative;z-index:1}` 구조. 위치는 `left:calc(34px + var(--wk-today) * ((100% - 48px) * 0.142857 + 2px) - 1px)`, 폭 `calc((100% - 48px) * 0.142857 + 2px)` — 34px 조 이름 열 + 7칸 균등 + 2px 간격 기준이라 화면 폭이 바뀌어도 자동 추적(리사이즈 JS 없음).
+  - `--wk-today`는 `renderWeek()`가 `wg.style.setProperty('--wk-today', String(days.indexOf(today)))`로 설정(현재 값 1).
+  - 오늘 헤더에 `오늘` 필 배지(`.wk-today-pill`) + 요일·날짜 강조색. `.wk-dow{align-self:end}`로 요일 줄 정렬.
+  - 테마별 변수 `--today-bg` / `--today-bd` / `--today-pill` / `--today-pill-ink` — 다크 `rgba(255,212,0,.12)`·테두리 `.70`, 네이비 `rgba(255,212,0,.13)`·`.66`, 화이트 `#FFF4CC`·`#E9A800`(흰 배경 시인성).
+  - 범례에 `▮ 오늘`(`.week-legend .today-lg`) 추가. `.week-card` 상단 패딩 12px → 14px.
+- 버전: `?v=2.5.4`(css·js·아이콘 4곳), `VERSION = '2.5.4'`, `CACHE = yongko-shift-v2.5.4`, 하단 표기 `교대핏 v2.5.4` 3곳(오늘·가이드·설정).
+- 검수(2026-11-27 · Pages `built` 21e6cae): 라이브 HTTP 200 — `/`·`/index.html` 70,980B `d8e4daa2`, `app.css?v=2.5.4` 61,547B `5a5052e3`, `app.js?v=2.5.4` 128,519B `1df34354`, `sw.js` 3,009B `0c99f666`, `manifest.json` 930B `f421ce74` — **로컬 MD5 4/4 일치**. 라이브 문자열 확인 — `index.html` `app.css?v=2.5.4`·`app.js?v=2.5.4`·`교대핏 v2.5.4`×3·`▮ 오늘`, `app.css` `--today-bg` 3테마·`.week-grid::before`·`.wk-today-pill`, `app.js` `wk-today-pill`·`setProperty('--wk-today'`, `sw.js` `VERSION = '2.5.4'`/`CACHE = yongko-shift-v2.5.4`.
+- 정적 검사: `esprima.parseScript` 통과(`app.js`·`sw.js`), CSS 중괄호 586/586, HTML 태그 밸런스 불일치 0. **Playwright 브라우저 검수는 미실시** — 로컬 chromium 실행 실패(`TargetClosedError`, 라이브러리 부재), 화면 픽셀 확인은 사용자 눈으로 필요.
 
 ## v2.5.3 (2026-11-27) — 설정 탭 🎨 근무 배지 색깔
 - **`index.html`** — `설정 → 화면 테마` 카드 바로 아래(내 회사 찾기 위)에 `🎨 근무 배지 색깔` `sec-head` + `.card`(#badgePick) + `.help` 추가. 버전: `?v=2.5.3`(6곳: apple-touch-icon·favicon-32·icon-192·app.css·brand-mark·app.js) · 하단 표기 `교대핏 v2.5.3`(3곳) · `?v=2.5.2` 0건(남은 `2.5.2` 1건은 계산기 이동을 설명하는 v2.5.2 이력 주석).
