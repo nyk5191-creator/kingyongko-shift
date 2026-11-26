@@ -27,6 +27,17 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
 
+## v2.5.5 (2026-11-27) — 무료 방문 카운터(관리자 통계)
+- 카운터 — **`https://abacus.jasoncameron.dev`** (무료·무가입·키 불필요, CORS `*`, IP당 30req/10s). 네임스페이스 `kingyongko-shift`, 키 `total` / `d-YYYYMMDD`. `GET /hit/{ns}/{key}` = +1, `GET /get/{ns}/{key}` = 읽기(없는 키는 404).
+  - 검증: `/hit`·`/get` 모두 **200**, `/healthcheck` `{"status":"ok","uptime":"360h"}`. `access-control-allow-origin: *` 확인.
+  - 탈락 후보 — `api.counterapi.dev` v1은 **410 deprecated**(v2는 워크스페이스 가입 필요), `countapi.xyz`는 서비스 종료.
+- 코드 — `app.js`에 방문 카운터 모듈(STATS_API/STATS_NS/STATS_LS = `kingyongko_shift_hits_v1`), `boot()`에서 `initStats()` 호출. `lastDay` 비교로 **기기·하루 1회만 +1**, `/hit` 실패 시 다음 접속에 재시도(성공 숫자는 유지).
+- 보기 — `?stats=1` 또는 **[설정] 맨 아래 `교대핏 v2.5.5` 5번 탭**(2.5초 안에) → `#statsWrap`(`📊 방문 통계` 카드) 표시. `#btnStatsRefresh`(읽기만) · `#btnStatsHide`. 서버 실패 시 마지막 값 + `지금은 서버에 연결하지 못했습니다`.
+- 검수(로컬 서버 + Playwright chromium): 첫 로드 `hidden=true` → 5탭 후 카드 표시 (`1회 오늘 / 1회 누적`) → `통계 숨기기` 다시 hidden → `?stats=1`이면 설정 탭 자동 전환·카드 표시. 새 컨텍스트(새 기기) 접속 시 `2/2`로 증가 = 중복 방지 정상. abacus 차단 상태에서는 `56회/1234회` 마지막 값 + 경고줄, 콘솔 에러 0.
+- 글꼴·캐시: `?v=2.5.5`(css·js·아이콘 4곳) · `VERSION = '2.5.5'` · `CACHE = yongko-shift-v2.5.5` · 하단 표기 `교대핏 v2.5.5` 3곳. `stats-card/stats-meta/stats-acts/stats-b` CSS 추가(브레이스 593/593).
+- 배포 커밋 `d578797` → Pages `built`. 라이브 HTTP 200 + **MD5 6/6 일치** — `/`·`/index.html` 71,579B `d5e66968`, `app.css?v=2.5.5` 62,122B `1f09a78c`, `app.js?v=2.5.5` 135,441B `b6d7c8ca`, `sw.js` 3,009B `e7edda1e`, `manifest.json` 930B `f421ce74`, `icon-192.png` 39,476B `e9bedde1`. 라이브 `?stats=1` 브라우저 확인 — 카드 `3회 오늘 / 2회 누적`(검증용 접속 포함), 콘솔 에러 0.
+- 카운터 현재값(비우는 API는 admin key 필요 — `/hit`로 만든 키는 삭제 불가): `total = 2`, `d-20261127 = 3` — 전부 이번 검증용 hit(GET·curl·브라우저). 실제 방문자 수는 다음 접속부터 올라간다.
+
 ## v2.5.4 (2026-11-27) — 앞뒤 7일 근무표 '오늘' 열 강조
 - `오늘` 탭 `앞뒤 7일 근무표`의 오늘 날짜 열을 **헤더 ~ 마지막 조까지 한 줄로 이어지는 세로 강조 밴드**로 바꿈. 셀마다 끊긴 `.wk-cell.today` 배경은 삭제.
   - `.week-grid::before`(position:absolute, z-index:0) + `.week-grid > *{position:relative;z-index:1}` 구조. 위치는 `left:calc(34px + var(--wk-today) * ((100% - 48px) * 0.142857 + 2px) - 1px)`, 폭 `calc((100% - 48px) * 0.142857 + 2px)` — 34px 조 이름 열 + 7칸 균등 + 2px 간격 기준이라 화면 폭이 바뀌어도 자동 추적(리사이즈 JS 없음).
