@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.1.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.2.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,15 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.2 (2026-11-26)
+- **교대핏 리브랜딩** — `<title>`·`manifest.json`(`name`·`short_name`=`교대핏`)·상단 로고(`교대핏` + `by 킹용코 · …`), 아이콘 6종을 골드 `핏` + 교대 회전 링으로 재생성.
+- **내 회사 찾기** — 설정 탭(테마 아래)·첫 세팅 시트 0단계에 업종 칩 6종 + 검색. 회사 40곳, 선택 시 교대 형태·조 표기(ABCD/1234)·근무 시간 자동 세팅 후 `내 조`→`오늘 내 근무`로 이어짐.
+- **프리셋 추가** — `5조 3교대`(10일) · `주간연속 2교대`(14일, 1주 교대). 조 수 상한 4→5, `A~E` 조 이름 지원.
+- **첫 화면 = 달력** — 기본 탭 `달력`, 탭바 순서 `달력·오늘·기록·가이드·설정`. 달력 맨 위 한 줄 `오늘 바`(`오늘 11/26 · A조 야간 19:00~07:00` + 오운완·식단 원탭).
+- **날짜 근무 태그** — 날짜 시트에서 `대근/특근/연차/교육` 원탭 + 짧은 일정(12자). 달력 칸에 태그(또는 메모 앞 5자) 표시, 기록 목록에 칩.
+- 저장값 `v:3` → `v:4`. **기준일 재계산 없음**(오프셋 규칙 동일) — 2026-11-22 기준 A조가 여전히 11/26 야간으로 나오는 것 확인.
+- 검수: Playwright 390×844, 콘솔 에러 0건. 달력 첫 화면 `calH 840px`(뷰포트 844)로 한 달+범례까지 한 화면, 가로 스크롤 0(`390/390`).
 
 ## v2.1 (2026-11-26)
 - 화면 테마 3종(`data-theme="dark|light|navy"`) · A·B·C·D조 기본 표기 · 조 순환 순서 기본 `A→C→D→B`(4조 2교대 실제 근무표 기준) · 오늘 탭 코칭 1줄 요약 · 오늘·내일 흐름으로 고르는 세팅.

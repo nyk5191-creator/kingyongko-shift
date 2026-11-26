@@ -1,19 +1,24 @@
 /* ===================================================================
-   용코교대 v2.1 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.2 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
          · 오늘 탭 코칭 1줄 요약(접기/펼치기) · 오늘·내일 흐름으로 고르는 세팅
+   v2.2: 교대핏 리브랜딩 · 내 회사 찾기(업종별 40곳 검색) · 5조 3교대·주간연속 2교대
+         · 첫 화면을 달력으로 + 한 줄 오늘 바(오운완·식단 원탭)
+         · 날짜별 근무 변경 태그(대근·특근·연차·교육) + 짧은 일정 메모를 달력 칸에 표시
    =================================================================== */
 (function () {
   'use strict';
 
   /* ---------------- 상수 ---------------- */
   var LS_KEY = 'kingyongko_shift_v1';
-  var STATE_V = 3;
+  var STATE_V = 4;
   var PARTS = ['가슴', '등', '어깨', '하체', '팔', '복근', '유산소'];
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
-  var ABC = ['A', 'B', 'C', 'D'];
+  var ABC = ['A', 'B', 'C', 'D', 'E'];
+  /* 날짜별 근무 변경 태그 */
+  var DAY_TAGS = ['대근', '특근', '연차', '교육'];
 
   /* 조 순환 순서 — 앞 조가 먼저 주간을 시작하고, 뒤 조는 그만큼 밀린다.
      기본 A→C→D→B: 11/26(목) 기준 A조 야간 · B조 휴무 · C조 휴무 · D조 주간 */
@@ -118,8 +123,203 @@
       cycle: ['D', 'N'],
       text: '주·야 (2일)',
       legend: '주·야 반복'
+    },
+    {
+      id: '5-3', name: '5조 3교대', groups: 5,
+      cycle: ['D', 'D', 'A', 'A', 'N', 'N', 'O', 'O', 'O', 'O'],
+      text: '주·주·오·오·야·야·비·휴·휴·휴 (10일)',
+      legend: '발전·공기업 대표 패턴'
+    },
+    {
+      id: '2-2w', name: '주간연속 2교대', groups: 2,
+      cycle: ['D', 'D', 'D', 'D', 'D', 'D', 'D', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+      text: '주 7일 → 오 7일 (14일)',
+      legend: '자동차 · 1주마다 조 교대'
     }
   ];
+
+  /* 프리셋을 고를 때 함께 맞춰지는 기본 근무 시간 — [설정]에서 얼마든지 수정 */
+  var PRESET_TIMES = {
+    '4-2': { D: ['07:00', '19:00'], A: ['07:00', '19:00'], N: ['19:00', '07:00'] },
+    '3-2': { D: ['07:00', '19:00'], A: ['07:00', '19:00'], N: ['19:00', '07:00'] },
+    '4-3': { D: ['06:00', '14:00'], A: ['14:00', '22:00'], N: ['22:00', '06:00'] },
+    '2-2': { D: ['07:00', '19:00'], A: ['07:00', '19:00'], N: ['19:00', '07:00'] },
+    '5-3': { D: ['06:00', '14:00'], A: ['14:00', '22:00'], N: ['22:00', '06:00'] },
+    '2-2w': { D: ['08:00', '16:40'], A: ['16:40', '01:40'], N: ['16:40', '01:40'] }
+  };
+
+  /* =================================================================
+     내 회사 찾기 — 업종별 회사 리스트 (v2.2)
+     회사를 고르면 교대 형태 · 조 이름 표기(ABCD/1234) · 근무 시간이 한 번에 세팅된다.
+     공장·현장마다 조 순서와 세부 시간이 다를 수 있어 [설정]에서 언제든 고칠 수 있다.
+     ================================================================= */
+  var HOURS_2C_PETRO = { D: ['07:00', '19:00'], N: ['19:00', '07:00'] };
+  var HOURS_3C = { D: ['06:00', '14:00'], A: ['14:00', '22:00'], N: ['22:00', '06:00'] };
+
+  var INDUSTRIES = [
+    { id: 'petro', name: '석유화학 · 정유', short: '석유화학' },
+    { id: 'semi', name: '반도체 · 디스플레이 · 배터리', short: '반도체' },
+    { id: 'heavy', name: '제철 · 조선 · 중공업', short: '제철·조선' },
+    { id: 'power', name: '발전 · 공기업', short: '발전' },
+    { id: 'auto', name: '자동차 · 부품', short: '자동차' },
+    { id: 'safe', name: '소방 · 경찰 · 병원 · 보안', short: '소방·의료' }
+  ];
+
+  /* 업종 기본값 */
+  var IND_DEF = {
+    petro: { p: '4-2', s: 'abc', t: HOURS_2C_PETRO },
+    semi: { p: '4-3', s: 'num', t: HOURS_3C },
+    heavy: { p: '4-2', s: 'abc', t: { D: ['08:00', '20:00'], N: ['20:00', '08:00'] } },
+    power: { p: '5-3', s: 'num', t: HOURS_3C },
+    auto: { p: '2-2w', s: 'num', t: { D: ['08:00', '16:40'], A: ['16:40', '01:40'], N: ['16:40', '01:40'] } },
+    safe: { p: '4-2', s: 'num', t: HOURS_2C_PETRO }
+  };
+
+  /* '회사명|검색어1/검색어2' — 검색어는 회사 이름에 없어도 찾아진다 */
+  var CO_LIST = {
+    petro: [
+      'SK에너지|sk에너지/에스케이에너지/skt',
+      'S-OIL|s-oil/에쓰오일/에스오일',
+      'GS칼텍스|gs칼텍스/칼텍스',
+      'HD현대오일뱅크|오일뱅크/현대오일뱅크',
+      'LG화학|lg화학/엘지화학',
+      '롯데케미칼|롯데케미칼/롯데',
+      '한화솔루션|한화솔루션/한화',
+      '금호석유화학|금호석유/금호',
+      '대한유화',
+      '여천NCC|여천/ncc',
+      '코오롱인더스트리|코오롱',
+      '효성화학|효성화학/효성'
+    ],
+    semi: [
+      '삼성전자 DS|삼성전자/삼전/ds',
+      'SK하이닉스|하이닉스',
+      '삼성디스플레이|삼성디스플레이',
+      'LG디스플레이|lg디스플레이/엘지디스플레이',
+      'LG에너지솔루션|엔솔/lg엔솔/에너지솔루션',
+      '삼성SDI|sdi/삼성sdi',
+      '에코프로|에코프로/에코프로비엠'
+    ],
+    heavy: [
+      '포스코|posco/포항제철',
+      '현대제철',
+      'HD현대중공업|현대중공업/중공업',
+      '한화오션|오션',
+      '삼성중공업|삼중'
+    ],
+    power: [
+      '한국수력원자력|한수원/수력원자력',
+      '한국남동발전|남동발전',
+      '한국중부발전|중부발전',
+      '한국서부발전|서부발전',
+      '한국남부발전|남부발전',
+      '한국동서발전|동서발전',
+      '한국가스공사|가스공사'
+    ],
+    auto: [
+      '현대자동차|현대차/현차',
+      '기아|기아차/기아자동차',
+      '현대모비스|모비스'
+    ],
+    safe: [
+      '소방공무원 · 3조 2교대|소방/소방공무원/119',
+      '소방공무원 · 4조 2교대|소방/소방공무원/119',
+      '경찰공무원|경찰/112',
+      '병원 간호사|간호사/간호/병원',
+      '시설·보안 · 3조 2교대|보안/경비/시설',
+      '시설·보안 · 2조 2교대|보안/경비/시설'
+    ]
+  };
+
+  /* 업종 기본과 다른 회사 — 교대 형태·시간·안내 한 줄 */
+  var CO_OVERRIDE = {
+    '포스코': { t: HOURS_2C_PETRO, nt: '현장별 4조 3교대도 있음' },
+    '현대제철': { p: '4-3', t: HOURS_3C, nt: '현장별 4조 2교대도 있음' },
+    '한국가스공사': { p: '4-3', t: HOURS_3C, nt: '현장별 5조 3교대도 있음' },
+    '소방공무원 · 3조 2교대': { p: '3-2', t: { D: ['09:00', '21:00'], N: ['21:00', '09:00'] } },
+    '소방공무원 · 4조 2교대': { p: '4-2', t: { D: ['09:00', '21:00'], N: ['21:00', '09:00'] } },
+    '경찰공무원': { t: { D: ['08:00', '20:00'], N: ['20:00', '08:00'] } },
+    '병원 간호사': { p: 'custom', cy: '주,주,오,오,야,야,휴,휴', cg: 4, t: { D: ['07:00', '15:00'], A: ['15:00', '23:00'], N: ['23:00', '07:00'] }, nt: '3교대 커스텀' },
+    '시설·보안 · 3조 2교대': { p: '3-2', t: HOURS_2C_PETRO },
+    '시설·보안 · 2조 2교대': { p: '2-2', t: HOURS_2C_PETRO }
+  };
+
+  var COMPANIES = (function () {
+    var out = [];
+    INDUSTRIES.forEach(function (ind) {
+      var base = IND_DEF[ind.id];
+      (CO_LIST[ind.id] || []).forEach(function (row) {
+        var parts = row.split('|');
+        var ov = CO_OVERRIDE[parts[0]] || {};
+        out.push({
+          name: parts[0],
+          keys: (parts[1] || '').split('/').filter(Boolean),
+          ind: ind.id,
+          p: ov.p || base.p,
+          s: base.s,
+          t: ov.t || base.t,
+          cy: ov.cy || '',
+          cg: ov.cg || 0,
+          nt: ov.nt || ''
+        });
+      });
+    });
+    return out;
+  })();
+
+  function presetById(id) {
+    for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i];
+    return null;
+  }
+  function companyByName(name) {
+    for (var i = 0; i < COMPANIES.length; i++) if (COMPANIES[i].name === name) return COMPANIES[i];
+    return null;
+  }
+  function coCycle(c) {
+    var p = presetById(c.p);
+    if (p) return p.cycle.slice();
+    return parseCycle(c.cy) || PRESETS[0].cycle.slice();
+  }
+  function coGroups(c) {
+    var p = presetById(c.p);
+    return p ? p.groups : Math.max(1, Math.min(5, c.cg || 4));
+  }
+  /* 'A·B·C·D조' / '1~5조' */
+  function styleLabel(style, G) {
+    if (style === 'num') {
+      if (G >= 4) return '1~' + G + '조';
+      var a = [];
+      for (var i = 1; i <= G; i++) a.push(i);
+      return a.join('·') + '조';
+    }
+    return groupLetters(G).join('·') + '조';
+  }
+  /* 주 07:00~19:00 / 야 19:00~07:00 — 그 주기에 실제로 있는 근무만 */
+  function shiftTimesText(c) {
+    var cyc = coCycle(c);
+    var has = {};
+    cyc.forEach(function (k) { if (SHIFT[k]) has[k] = true; });
+    return ['D', 'A', 'N'].filter(function (k) { return has[k]; }).map(function (k) {
+      var t = (c.t && c.t[k]) || (PRESET_TIMES[c.p] || {})[k] || ['07:00', '19:00'];
+      return SHIFT[k].short + ' ' + t[0] + '~' + t[1];
+    }).join(' / ');
+  }
+  function cloneTimes(src) {
+    var o = {};
+    ['D', 'A', 'N'].forEach(function (k) {
+      o[k] = (src[k] || ['07:00', '19:00']).slice();
+    });
+    return o;
+  }
+  /* 조 수에 맞지 않는 조 순서를 자연 순서로 되돌린다 */
+  function normalizeOrder() {
+    var G = getGroups();
+    var letters = groupLetters(G);
+    var cur = String(state.groupOrder || '').toUpperCase();
+    var ok = true;
+    letters.forEach(function (l) { if (cur.indexOf(l) < 0) ok = false; });
+    if (!ok) state.groupOrder = (G === 4 ? 'ACDB' : letters.join(''));
+  }
 
   /* ---------------- 아이콘 (인라인 SVG) ---------------- */
   var SVG = function (inner, sw) {
@@ -346,10 +546,10 @@
       v: STATE_V,
       presetId: s.presetId || DEFAULTS.presetId,
       custom: s.custom || DEFAULTS.custom,
-      customGroups: s.customGroups || DEFAULTS.customGroups,
-      group: s.group || 1,
+      customGroups: Math.max(2, Math.min(5, s.customGroups || DEFAULTS.customGroups)),
+      group: Math.max(1, Math.min(5, s.group || 1)),
       groupStyle: s.groupStyle === 'num' ? 'num' : 'abc',
-      groupOrder: /^[ABCD]{4}$/.test(String(s.groupOrder || '')) ? s.groupOrder : DEFAULTS.groupOrder,
+      groupOrder: /^[A-E]{2,5}$/.test(String(s.groupOrder || '')) ? s.groupOrder : DEFAULTS.groupOrder,
       theme: ['dark', 'light', 'navy'].indexOf(s.theme) >= 0 ? s.theme : DEFAULTS.theme,
       coachOpen: s.coachOpen === true,
       anchor: s.anchor || todayISO(),
@@ -365,7 +565,7 @@
     /* v2.0 → v2.1 이사: 조 오프셋 계산이 바뀌었으므로(기본 A→C→D→B),
        저장된 기준일을 새 계산에 맞춰 다시 잡는다.
        사용자가 골랐던 '오늘 내 근무'는 그대로 유지된다. */
-    if ((s.v || 2) < STATE_V && s.anchor) {
+    if ((s.v || 2) < 3 && s.anchor) {
       var info = cycleOfState(out);
       var M = info.cycle.length, GG = info.groups;
       var step = Math.max(1, Math.round(M / GG));
@@ -388,7 +588,7 @@
     var c = parseCycle(s.custom);
     return {
       cycle: (c && c.length ? c : PRESETS[0].cycle.slice()),
-      groups: Math.max(1, Math.min(4, s.customGroups || 4))
+      groups: Math.max(1, Math.min(5, s.customGroups || 4))
     };
   }
 
@@ -410,16 +610,16 @@
   function getGroups() {
     var p = getPreset();
     var g = p ? p.groups : (state.customGroups || 4);
-    return Math.max(1, Math.min(4, g));
+    return Math.max(1, Math.min(5, g));
   }
   function presetName() {
     var p = getPreset();
     return p ? p.name : '커스텀 주기';
   }
-  /* 조 수만큼의 이름(A·B·C·D) */
+  /* 조 수만큼의 이름(A·B·C·D·E) */
   function groupLetters(G) {
     var out = [];
-    for (var i = 1; i <= G; i++) out.push(ABC[(i - 1) % 4]);
+    for (var i = 1; i <= Math.max(1, G); i++) out.push(ABC[(i - 1) % ABC.length]);
     return out;
   }
 
@@ -428,8 +628,7 @@
      A→C→D→B(기본) · 8일 주기 4조 → A 0 · C 6 · D 4 · B 2 */
   function offsetFor(order, g, N, G) {
     var letters = groupLetters(G);
-    var raw = String(order || 'ACDB').toUpperCase().replace(/[^ABCD]/g, '');
-    if (raw.length !== 4) raw = 'ACDB';
+    var raw = String(order || '').toUpperCase().replace(/[^A-E]/g, '');
     var ord = [];
     raw.split('').forEach(function (l) {
       if (ord.indexOf(l) < 0 && letters.indexOf(l) >= 0) ord.push(l);
@@ -450,7 +649,7 @@
   /* 조 이름 표기 — 기본 A·B·C·D조, 설정에서 1·2·3·4조로 전환 */
   function groupName(g) {
     var n = Math.max(1, Math.round(g || 1));
-    return state.groupStyle === 'num' ? (n + '조') : (ABC[(n - 1) % 4] + '조');
+    return state.groupStyle === 'num' ? (n + '조') : (ABC[(n - 1) % ABC.length] + '조');
   }
 
   function shiftFor(iso, group0) {
@@ -489,8 +688,9 @@
   /* ---------------- 로그 ---------------- */
   function getLog(iso) {
     var l = state.logs[iso];
-    if (!l) l = { workout: false, clean: false, weight: null, run: null, parts: [], memo: '' };
+    if (!l) l = { workout: false, clean: false, weight: null, run: null, parts: [], memo: '', tags: [], sched: '' };
     if (!Array.isArray(l.parts)) l.parts = [];
+    if (!Array.isArray(l.tags)) l.tags = [];
     return l;
   }
   function patchLog(iso, patch, removeIfEmpty) {
@@ -499,6 +699,8 @@
       (typeof cur.weight === 'number' && cur.weight > 0) ||
       (typeof cur.run === 'number' && cur.run > 0) ||
       (cur.parts && cur.parts.length) ||
+      (cur.tags && cur.tags.length) ||
+      (cur.sched && String(cur.sched).trim()) ||
       (cur.memo && cur.memo.trim());
     if (hasData) state.logs[iso] = cur;
     else delete state.logs[iso];
@@ -540,8 +742,7 @@
 
   /* ---------------- 렌더: 상단 ---------------- */
   function renderTop() {
-    var cyc = getCycle();
-    $('topSub').textContent = presetName() + ' · ' + groupName(state.group) + ' · ' + cyc.length + '일 주기';
+    $('topSub').textContent = 'by 킹용코 · ' + presetName() + ' · ' + groupName(state.group);
   }
 
   /* ---------------- 화면 테마 ---------------- */
@@ -642,6 +843,9 @@
       '<div class="sc-status"><span class="pulse"></span><span>' + st.html + '</span></div>' +
       (code === 'O' ? '' : '<div class="sc-bar"><span style="width:' + Math.max(2, Math.min(100, st.pct)).toFixed(1) + '%"></span></div>');
 
+    /* 달력 첫 화면 상단 오늘 바 */
+    renderTodayBar(t, code, w);
+
     /* 코칭 — 1줄 요약 + (자세히 펼칠 때) 3카드 */
     var c = COACH[code];
     $('coachChip').textContent = c.chip;
@@ -652,10 +856,9 @@
       coachCard(ICON.coffee, '카페인 · 수면', c.caffeine);
     applyCoachOpen();
 
-    /* 체크 상태 */
+    /* 체크 상태 — 오늘 탭과 달력 상단 오늘 바를 같이 맞춘다 */
     var lg = getLog(t);
-    setCheckBtn($('btnWorkout'), !!lg.workout);
-    setCheckBtn($('btnClean'), !!lg.clean);
+    syncTodayChecks();
     var ri = $('runInput');
     if (document.activeElement !== ri) {
       ri.value = (typeof lg.run === 'number' && lg.run > 0) ? lg.run : '';
@@ -664,6 +867,30 @@
     if (document.activeElement !== mi) mi.value = lg.memo || '';
 
     renderWeek();
+  }
+
+  /* 달력 맨 위 — 오늘 근무 + 오운완·식단 원탭 */
+  function renderTodayBar(iso, code, w) {
+    var txt = $('tbTxt');
+    if (!txt) return;
+    var meta = SHIFT[code] || SHIFT.O;
+    var d = parseISO(iso);
+    var tTxt = code === 'O' ? '' : (w.st + '~' + (w.cross ? '익일 ' : '') + w.en);
+    txt.innerHTML = '오늘 <b>' + (d.getMonth() + 1) + '/' + d.getDate() + '</b> · ' +
+      groupName(state.group) + ' <b class="' + meta.cls + '">' + meta.name + '</b>' +
+      (tTxt ? ' ' + tTxt : '');
+  }
+  function setTbBtn(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function syncTodayChecks() {
+    var lg = getLog(todayISO());
+    setCheckBtn($('btnWorkout'), !!lg.workout);
+    setCheckBtn($('btnClean'), !!lg.clean);
+    setTbBtn($('tbWorkout'), !!lg.workout);
+    setTbBtn($('tbClean'), !!lg.clean);
   }
 
   /* 코칭 요약 카드 접기/펼치기 상태 반영 */
@@ -804,10 +1031,17 @@
         if (typeof lg.weight === 'number' && lg.weight > 0) dots += '<i class="pt w"></i>';
         if (typeof lg.run === 'number' && lg.run > 0) dots += '<i class="pt r"></i>';
       }
+      /* 한 줄 표시 — 근무 변경 태그 > 짧은 일정 > 공휴일 이름 (칸이 좁아 하나만) */
+      var tags = (lg && Array.isArray(lg.tags)) ? lg.tags : [];
+      var sched = (lg && lg.sched) ? String(lg.sched) : '';
+      var mark = '';
+      if (tags.length) mark = '<span class="ctag">' + esc(tags[0]) + (tags.length > 1 ? '+' + (tags.length - 1) : '') + '</span>';
+      else if (sched) mark = '<span class="ctag m">' + esc(sched.slice(0, 5)) + '</span>';
+      else if (hol) mark = '<span class="hn">' + esc(hol[0]) + '</span>';
       html += '<button class="' + cls + '" data-date="' + iso + '">' +
         '<span class="n">' + day + '</span>' +
         '<span class="bb ' + meta.cls + '">' + meta.short + '</span>' +
-        (hol ? '<span class="hn">' + esc(hol[0]) + '</span>' : '') +
+        mark +
         '<span class="dots">' + dots + '</span>' +
         '</button>';
     }
@@ -934,6 +1168,8 @@
       if (l.clean) tags += '<span class="tag g">식단 클린</span>';
       if (typeof l.run === 'number' && l.run > 0) tags += '<span class="tag r">🏃 ' + fmtKm(l.run) + 'km</span>';
       if (typeof l.weight === 'number' && l.weight > 0) tags += '<span class="tag w">' + l.weight + 'kg</span>';
+      (Array.isArray(l.tags) ? l.tags : []).forEach(function (tg) { tags += '<span class="tag t">' + esc(tg) + '</span>'; });
+      if (l.sched) tags += '<span class="tag t">📌 ' + esc(l.sched) + '</span>';
       (l.parts || []).forEach(function (p) { tags += '<span class="tag">' + esc(p) + '</span>'; });
       return '<div class="log-item">' +
         '<div class="li-top">' +
@@ -990,6 +1226,135 @@
     $('chartSub').textContent = entries.length + '회 · ' + first + ' → ' + lastV + 'kg';
   }
 
+  /* ---------------- 내 회사 찾기 (설정 탭 · 첫 세팅 시트 공통) ---------------- */
+  var coState = {
+    settings: { ind: 'all', q: '', open: false, picked: '' },
+    setup: { ind: 'all', q: '', open: false, picked: '' }
+  };
+
+  function coNorm(s) {
+    return String(s == null ? '' : s).toLowerCase().replace(/[\s()\uff08\uff09\-_.]/g, '');
+  }
+  function coResults(s) {
+    var q = coNorm(s.q);
+    return COMPANIES.filter(function (c) {
+      if (!q && s.ind !== 'all' && c.ind !== s.ind) return false;
+      if (!q) return true;
+      if (coNorm(c.name).indexOf(q) >= 0) return true;
+      for (var i = 0; i < c.keys.length; i++) {
+        if (coNorm(c.keys[i]).indexOf(q) >= 0) return true;
+      }
+      return false;
+    });
+  }
+  function coIndShort(id) {
+    for (var i = 0; i < INDUSTRIES.length; i++) if (INDUSTRIES[i].id === id) return INDUSTRIES[i].short;
+    return '';
+  }
+  function coItemHTML(c, scope) {
+    var p = presetById(c.p);
+    return '<button class="co-item" data-co-pick="' + esc(c.name) + '" data-co-scope="' + scope + '">' +
+      '<span class="co-top"><b>' + esc(c.name) + '</b><i>' + esc(coIndShort(c.ind)) + '</i></span>' +
+      '<span class="co-sub">' + esc((p ? p.name : '커스텀 주기') + ' · ' + styleLabel(c.s, coGroups(c))) + '</span>' +
+      '<span class="co-time">' + esc(shiftTimesText(c)) + '</span>' +
+      (c.nt ? '<span class="co-nt">' + esc(c.nt) + '</span>' : '') +
+      '</button>';
+  }
+  function renderCompanyBlock(scope) {
+    var s = coState[scope];
+    var chipsEl = $(scope === 'settings' ? 'coChips' : 'setupCoChips');
+    var listEl = $(scope === 'settings' ? 'coList' : 'setupCoList');
+    var inputEl = $(scope === 'settings' ? 'coInput' : 'setupCoInput');
+    var pickEl = $(scope === 'settings' ? 'coPicked' : 'setupCoPicked');
+    if (!chipsEl || !listEl) return;
+
+    if (inputEl && document.activeElement !== inputEl && inputEl.value !== s.q) inputEl.value = s.q;
+
+    var chips = '<button class="chip' + (s.ind === 'all' ? ' on' : '') + '" data-co-ind="all" data-co-scope="' + scope + '">전체</button>';
+    INDUSTRIES.forEach(function (d) {
+      chips += '<button class="chip' + (s.ind === d.id ? ' on' : '') + '" data-co-ind="' + d.id + '" data-co-scope="' + scope + '">' + d.name + '</button>';
+    });
+    chipsEl.innerHTML = chips;
+
+    if (pickEl) {
+      var pk = s.picked ? companyByName(s.picked) : null;
+      pickEl.hidden = !pk;
+      if (pk) {
+        pickEl.innerHTML = '<b>' + esc(pk.name) + '</b> 세팅 완료 — ' +
+          esc((presetById(pk.p) ? presetById(pk.p).name : '커스텀 주기') + ' · ' + styleLabel(pk.s, coGroups(pk))) +
+          '<i>내 조와 오늘 내 근무만 확인하세요</i>';
+      }
+    }
+
+    if (!s.open) {
+      listEl.innerHTML = '<div class="co-hint">업종을 고르거나 회사 이름을 검색하면<br>교대 형태 · 조 표기 · 근무 시간이 자동으로 맞춰집니다</div>';
+      return;
+    }
+    var rows = coResults(s);
+    if (!rows.length) {
+      listEl.innerHTML = '<div class="co-hint">검색 결과가 없습니다. 다른 업종이나 다른 이름으로 찾아보세요.</div>';
+      return;
+    }
+    listEl.innerHTML = '<div class="co-cnt">' + rows.length + '곳</div>' +
+      rows.map(function (c) { return coItemHTML(c, scope); }).join('');
+  }
+
+  /* 회사를 골랐을 때: 교대 형태 · 조 표기 · 근무 시간을 한 번에 세팅 */
+  function applyCompany(c) {
+    state.presetId = c.p || '4-2';
+    if (state.presetId === 'custom') {
+      state.custom = parseCycle(c.cy) ? c.cy : state.custom;
+      state.customGroups = Math.max(2, Math.min(5, c.cg || 4));
+    }
+    state.groupStyle = c.s === 'num' ? 'num' : 'abc';
+    state.group = 1;
+
+    var G = getGroups();
+    var letters = groupLetters(G);
+    var cur = String(state.groupOrder || '');
+    var four = (/^[A-D]{4}$/.test(cur) && cur.split('').filter(function (v, i, a) { return a.indexOf(v) === i; }).length === 4);
+    if (G === 4) state.groupOrder = four ? cur : 'ACDB';
+    else state.groupOrder = letters.join('');
+
+    var base = PRESET_TIMES[state.presetId] || PRESET_TIMES['4-2'];
+    var t = {};
+    ['D', 'A', 'N'].forEach(function (k) {
+      t[k] = ((c.t && c.t[k]) || base[k] || state.times[k] || ['07:00', '19:00']).slice();
+    });
+    state.times = t;
+    save();
+  }
+
+  function pickCompany(name, scope) {
+    var c = companyByName(name);
+    if (!c) return;
+    applyCompany(c);
+    var s = coState[scope] || coState.settings;
+    s.picked = c.name;
+    s.open = false;
+    s.q = '';
+    s.ind = 'all';
+    renderAll();
+    renderSettings();
+    renderSetup();
+    toast(c.name + ' — ' + presetName() + ' 세팅');
+
+    /* 바로 '내 조' → '오늘 내 근무'로 이어지게 */
+    if (scope === 'setup') {
+      [$('setupStep2'), $('setupStep3')].forEach(function (n) { if (n) n.classList.add('next'); });
+      if ($('setupStep2') && $('setupStep2').scrollIntoView) {
+        $('setupStep2').scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    } else {
+      var card = $('groupCard');
+      if (card) {
+        card.classList.add('flash');
+        if (card.scrollIntoView) card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        setTimeout(function () { card.classList.remove('flash'); }, 1800);
+      }
+    }
+  }
+
   /* ---------------- 렌더: 설정 ---------------- */
   function renderSettings() {
     var p = getPreset();
@@ -1025,8 +1390,9 @@
     $('groupChips').innerHTML = chips;
     syncGroupStyle();
 
-    /* 조 순환 순서 */
-    $('groupOrderChips').innerHTML = GROUP_ORDERS.map(function (o) {
+    /* 조 순환 순서 — 4조는 킹용코 회사 기본(A→C→D→B) 포함 3가지, 그 외 조 수는 자연 순서 */
+    var orders = (G === 4) ? GROUP_ORDERS : [{ id: groupLetters(G).join(''), label: groupLetters(G).join(' → '), note: '기본' }];
+    $('groupOrderChips').innerHTML = orders.map(function (o) {
       return '<button class="chip' + (state.groupOrder === o.id ? ' on' : '') + '" data-gorder="' + o.id + '">' +
         o.label + (o.note ? ' <i>' + o.note + '</i>' : '') + '</button>';
     }).join('');
@@ -1044,10 +1410,13 @@
 
     /* 커스텀 조 수 */
     var cg = '';
-    [2, 3, 4].forEach(function (n) {
+    [2, 3, 4, 5].forEach(function (n) {
       cg += '<button class="chip' + (state.customGroups === n ? ' on' : '') + '" data-cgroup="' + n + '">' + n + '조</button>';
     });
     $('customGroupChips').innerHTML = cg;
+
+    /* 내 회사 찾기 */
+    renderCompanyBlock('settings');
 
     if (document.activeElement !== $('customInput')) $('customInput').value = state.custom;
 
@@ -1150,6 +1519,9 @@
     }
     $('setupGroups').innerHTML = g;
 
+    /* 내 회사 찾기 */
+    renderCompanyBlock('setup');
+
     /* 아직 고른 적 없으면 오늘 버튼을 미리 켜 두지 않는다 */
     renderTodayPick($('setupPick'), !state.setupDone);
   }
@@ -1166,7 +1538,7 @@
   }
 
   /* ---------------- 탭 ---------------- */
-  var curTab = 'today';
+  var curTab = 'calendar';   /* v2.2 — 첫 화면은 달력(내 달력) */
   function switchTab(name) {
     curTab = name;
     document.querySelectorAll('.tab').forEach(function (s) {
@@ -1191,7 +1563,7 @@
   }
 
   /* ---------------- 시트 ---------------- */
-  var sheetISO = null, sheetParts = [];
+  var sheetISO = null, sheetParts = [], sheetTags = [];
 
   function openSheet(iso) {
     sheetISO = iso;
@@ -1223,7 +1595,10 @@
     $('sheetRun').value = (typeof lg.run === 'number' && lg.run > 0) ? lg.run : '';
     $('sheetMemo').value = lg.memo || '';
     sheetParts = (lg.parts || []).slice();
+    sheetTags = (Array.isArray(lg.tags) ? lg.tags : []).slice();
+    $('sheetSched').value = lg.sched || '';
     renderSheetParts();
+    renderSheetTags();
 
     $('sheetWrap').classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -1236,6 +1611,12 @@
     }).join('');
   }
 
+  function renderSheetTags() {
+    $('sheetTags').innerHTML = DAY_TAGS.map(function (t) {
+      return '<button class="chip' + (sheetTags.indexOf(t) >= 0 ? ' on' : '') + '" data-dtag="' + t + '">' + t + '</button>';
+    }).join('');
+  }
+
   function commitSheet() {
     if (!sheetISO) return;
     var wRaw = $('sheetWeight').value.trim();
@@ -1245,6 +1626,8 @@
       weight: w,
       run: parseKm($('sheetRun').value),
       parts: sheetParts.slice(),
+      tags: sheetTags.slice(),
+      sched: $('sheetSched').value.trim().slice(0, 12),
       memo: $('sheetMemo').value.slice(0, 200)
     });
     renderCal(); renderLog(); renderToday();
@@ -1276,10 +1659,7 @@
       var v = !lg[k];
       patchLog(iso, (function () { var o = {}; o[k] = v; return o; })());
       setCheckBtn(btn, v);
-      if (iso === todayISO()) {
-        setCheckBtn($('btnWorkout'), !!getLog(iso).workout);
-        setCheckBtn($('btnClean'), !!getLog(iso).clean);
-      }
+      if (iso === todayISO()) syncTodayChecks();
       if (sheetISO) {
         setCheckBtn($('sheetWorkout'), !!getLog(sheetISO).workout);
         setCheckBtn($('sheetClean'), !!getLog(sheetISO).clean);
@@ -1291,6 +1671,12 @@
     $('btnClean').addEventListener('click', function () { toggleCheck(this, todayISO()); });
     $('sheetWorkout').addEventListener('click', function () { if (sheetISO) toggleCheck(this, sheetISO); });
     $('sheetClean').addEventListener('click', function () { if (sheetISO) toggleCheck(this, sheetISO); });
+
+    /* 달력 상단 오늘 바 — 오운완·식단 원탭 */
+    ['tbWorkout', 'tbClean'].forEach(function (id) {
+      var b = $(id);
+      if (b) b.addEventListener('click', function () { toggleCheck(this, todayISO()); });
+    });
 
     /* 오늘 한 줄 메모 */
     var memo = $('memoInput'), memoTimer = null;
@@ -1335,6 +1721,8 @@
       var b = e.target.closest('[data-spreset]');
       if (!b) return;
       state.presetId = b.dataset.spreset;
+      if (PRESET_TIMES[state.presetId]) state.times = cloneTimes(PRESET_TIMES[state.presetId]);
+      normalizeOrder();
       state.group = Math.min(state.group, getGroups());
       save();
       renderSetup();
@@ -1352,8 +1740,8 @@
       state.setupDone = true;
       save();
       closeSetup();
-      switchTab('today');
-      toast('설정 완료 — 오늘 코칭을 확인하세요');
+      switchTab('calendar');
+      toast('설정 완료 — 한 달 근무표부터 확인하세요');
     });
 
     /* 가이드 탭 → 다른 탭으로 */
@@ -1425,6 +1813,14 @@
       if (i >= 0) sheetParts.splice(i, 1); else sheetParts.push(p);
       renderSheetParts();
     });
+    $('sheetTags').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-dtag]');
+      if (!b) return;
+      var tg = b.getAttribute('data-dtag');
+      var i = sheetTags.indexOf(tg);
+      if (i >= 0) sheetTags.splice(i, 1); else sheetTags.push(tg);
+      renderSheetTags();
+    });
 
     /* 오늘 코칭 요약 카드 펼치기/접기 */
     $('coachToggle').addEventListener('click', function () {
@@ -1474,6 +1870,8 @@
       if (!b) return;
       var id = b.dataset.preset;
       state.presetId = id;
+      if (PRESET_TIMES[id]) state.times = cloneTimes(PRESET_TIMES[id]);
+      normalizeOrder();
       state.group = Math.min(state.group, getGroups());
       save(); renderAll();
       toast(id === 'custom' ? '커스텀 주기 — 아래에서 입력' : presetName() + ' 적용');
@@ -1567,6 +1965,35 @@
     });
     $('btnSetupAgain').addEventListener('click', function () {
       openSetup();
+    });
+
+    /* 내 회사 찾기 — 검색 · 업종 칩 · 회사 선택 (설정 탭 + 첫 세팅 시트 공통) */
+    [['coInput', 'settings'], ['setupCoInput', 'setup']].forEach(function (pair) {
+      var inp = $(pair[0]);
+      if (!inp) return;
+      var scope = pair[1];
+      inp.addEventListener('input', function () {
+        coState[scope].q = inp.value;
+        coState[scope].open = true;
+        renderCompanyBlock(scope);
+      });
+      inp.addEventListener('focus', function () {
+        coState[scope].open = true;
+        renderCompanyBlock(scope);
+      });
+    });
+    document.addEventListener('click', function (e) {
+      var ind = e.target.closest('[data-co-ind]');
+      if (ind) {
+        var sc = ind.getAttribute('data-co-scope');
+        coState[sc].ind = ind.getAttribute('data-co-ind');
+        coState[sc].q = '';
+        coState[sc].open = true;
+        renderCompanyBlock(sc);
+        return;
+      }
+      var pick = e.target.closest('[data-co-pick]');
+      if (pick) pickCompany(pick.getAttribute('data-co-pick'), pick.getAttribute('data-co-scope'));
     });
 
     /* iOS 배너 */

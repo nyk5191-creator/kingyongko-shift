@@ -1,7 +1,7 @@
 {
-  "name": "용코교대 — 교대근무 헬스",
-  "short_name": "용코교대",
-  "description": "교대근무표와 오늘 운동·식단·카페인 코칭, 오운완·식단 클린·러닝 기록, 교대근무 가이드, 2026~2027 공휴일까지 한 번에.",
+  "name": "교대핏",
+  "short_name": "교대핏",
+  "description": "교대근무 근무표 · 헬스 · 식단 · 러닝 올인원 — by 킹용코",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "./index.html",

@@ -1,5 +1,5 @@
 /* ===================================================================
-   용코교대 v2.1 · 테마 3종 (다크 골드 / 밝은 화이트 / 네이비 블루)
+   교대핏 v2.2 · 테마 3종 (다크 골드 / 밝은 화이트 / 네이비 블루)
    html[data-theme="dark"|"light"|"navy"] 로 전체 색을 갈아끼운다.
    =================================================================== */
 :root{
@@ -891,3 +891,119 @@ body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-ite
 @media (prefers-reduced-motion:reduce){
   body,.app,.topbar,.tabbar,.sheet,.card,.ccard,.shift-card,.preset,.stat,.log-item,.input,.field-note,.acc,.step,.cta-card,.coach-sum{transition:none}
 }
+
+/* ===================================================================
+   v2.2 추가분 — 달력 첫 화면(한 줄 오늘 바) · 내 회사 찾기 · 날짜 근무 태그
+   =================================================================== */
+
+/* ---------- 달력 맨 위: 컴팩트 오늘 바 ---------- */
+.today-bar{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 9px 8px 12px;margin:-2px 0 10px;
+  border-radius:13px;border:1px solid var(--line);background:var(--card);
+}
+.tb-txt{
+  flex:1;min-width:0;font-size:11.5px;font-weight:700;color:var(--txt2);
+  letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;
+}
+.tb-txt b{font-weight:800;color:var(--txt)}
+.tb-txt b.d{color:var(--d)}
+.tb-txt b.a{color:var(--a)}
+.tb-txt b.n{color:var(--n)}
+.tb-txt b.o{color:var(--o)}
+.tb-btn{
+  flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:-.02em;
+  color:var(--muted);background:var(--card2);border:1px solid var(--line);
+  padding:5px 9px;border-radius:9px;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tb-btn.on{background:var(--yellow);border-color:var(--yellow);color:var(--on-accent)}
+.tb-btn:active{transform:scale(.96)}
+
+/* ---------- 달력 칸 — 날짜·근무 배지·태그·점 ---------- */
+.cday{aspect-ratio:1/1.52;padding:5px 0 0;overflow:hidden}
+.cday .n{font-size:13px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.cday .bb{margin-top:3px;font-size:10px;padding:3px 6px;border-radius:6px}
+.cday .ctag{
+  display:block;max-width:calc(100% - 6px);margin-top:2px;padding:1px 4px;
+  font-size:8px;font-weight:800;line-height:1.3;letter-spacing:-.03em;
+  color:var(--run-ink);background:rgba(var(--run-rgb),.15);border-radius:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cday .ctag.m{color:var(--yellow-ink2);background:rgba(var(--accent-rgb),.13)}
+.cday .hn{font-size:7px;line-height:1.15;margin-top:1px}
+.cday .dots{padding-bottom:5px}
+.cal-legend .pt.t{background:var(--run);width:6px;height:6px;border-radius:50%}
+
+/* ---------- 내 회사 찾기 (설정 탭 · 첫 세팅 시트) ---------- */
+.co-card{padding:13px}
+.co-search{
+  display:flex;align-items:center;gap:7px;
+  padding:9px 11px;border-radius:12px;background:var(--input-bg);border:1px solid var(--line);
+}
+.co-search:focus-within{border-color:rgba(var(--accent-rgb),.45)}
+.co-ico{font-size:12px;line-height:1;opacity:.85;flex:0 0 auto}
+.co-input{
+  flex:1;min-width:0;background:none;border:0;outline:none;
+  font-size:13px;font-weight:600;color:var(--txt);letter-spacing:-.02em;
+}
+.co-input::placeholder{color:var(--faint);font-weight:500;font-size:11.5px}
+.co-chips{margin-top:9px;gap:5px}
+.co-chips .chip{font-size:11px;padding:6px 10px;border-radius:9px}
+.co-list{
+  margin-top:9px;max-height:286px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.co-list:empty{margin-top:0}
+.setup-body .co-list{max-height:232px}
+.co-cnt{font-size:9.5px;font-weight:800;color:var(--faint);margin:2px 2px 5px}
+.co-hint{
+  font-size:11px;line-height:1.6;color:var(--muted);text-align:center;
+  padding:13px 10px;border-radius:11px;background:var(--sunken);border:1px dashed var(--line);
+}
+.co-item{
+  display:block;width:100%;text-align:left;
+  padding:9px 11px;border-radius:12px;background:var(--card2);border:1px solid var(--line);
+  margin-bottom:6px;
+}
+.co-item:last-child{margin-bottom:0}
+.co-item:active{transform:scale(.988)}
+.co-top{display:flex;align-items:center;gap:7px}
+.co-top b{font-size:13px;font-weight:800;letter-spacing:-.025em;color:var(--txt)}
+.co-top i{
+  font-style:normal;font-size:9px;font-weight:800;color:var(--muted);
+  background:var(--sunken);border:1px solid var(--line);padding:2px 6px;border-radius:999px;
+}
+.co-sub{display:block;font-size:11px;font-weight:700;color:var(--yellow-ink2);margin-top:3px;letter-spacing:-.02em}
+.co-time{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums}
+.co-nt{display:block;font-size:9.5px;font-weight:600;color:var(--faint);margin-top:2px}
+.co-note{font-size:9.5px;line-height:1.5;color:var(--faint);margin-top:9px}
+.co-picked{
+  display:flex;flex-direction:column;gap:2px;margin-top:9px;padding:9px 11px;
+  border-radius:11px;background:var(--yellow-dim);border:1px solid rgba(var(--accent-rgb),.35);
+  font-size:11px;font-weight:700;color:var(--yellow-ink2);line-height:1.4;
+}
+.co-picked b{font-size:12.5px;font-weight:800;color:var(--yellow-ink)}
+.co-picked i{font-style:normal;font-size:10px;font-weight:600;color:var(--muted)}
+.ss-opt{font-style:normal;font-size:9.5px;font-weight:600;color:var(--faint);margin-left:2px}
+/* 회사를 고르면 바로 2·3단계로 이어지게 */
+.setup-step.next{color:var(--yellow-ink)}
+.setup-step.next .sn{background:var(--yellow);border-color:var(--yellow);color:var(--on-accent)}
+
+/* ---------- 설정: 회사 세팅 후 '내 조' 카드 강조 ---------- */
+@keyframes coFlash{
+  0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55)}
+  70%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}
+  100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}
+}
+.card.flash{border-color:rgba(var(--accent-rgb),.6);animation:coFlash 1.2s ease-out 2}
+
+/* ---------- 날짜 시트: 근무 변경 태그 · 짧은 일정 ---------- */
+.sched-field{margin-bottom:13px}
+.sched-in{margin-top:7px;font-size:12.5px}
+.tag.t{background:rgba(var(--run-rgb),.14);color:var(--run-ink);border-color:rgba(var(--run-rgb),.3)}
+
+/* ---------- 달력 첫 화면: 제목줄 없이 한 줄 안내만 ---------- */
+.datebar.cal-bar{padding:0 2px 8px}
+.datebar.cal-bar .d2{margin-top:0;font-size:11.5px}
+.cday{aspect-ratio:1/1.45}

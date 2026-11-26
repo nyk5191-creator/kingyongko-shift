@@ -2,14 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>용코교대 — 교대근무 헬스</title>
+<title>교대핏 — 교대근무 근무표 · 헬스 · 식단 · 러닝</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0D0D0F">
-<meta name="description" content="교대근무표 + 오늘 운동·식단·카페인 코칭 + 오운완·식단 클린·러닝 기록 + 2026~2027 공휴일">
+<meta name="description" content="교대근무 근무표 · 헬스 · 식단 · 러닝 올인원 — by 킹용코">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="용코교대">
+<meta name="apple-mobile-web-app-title" content="교대핏">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -33,10 +33,10 @@
 
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark">용</span>
+      <span class="brand-mark">핏</span>
       <span class="brand-txt">
-        <b>용코교대</b>
-        <i id="topSub">4조 2교대 · 1조</i>
+        <b>교대핏</b>
+        <i id="topSub">by 킹용코 · 4조 2교대 · A조</i>
       </span>
     </div>
     <button class="topbar-btn" id="btnInstallTop" hidden>설치</button>
@@ -53,7 +53,7 @@
   <main id="main">
 
     <!-- ============ 오늘 ============ -->
-    <section class="tab is-active" id="tab-today">
+    <section class="tab" id="tab-today">
       <div class="datebar">
         <div class="d1"><span id="todayDate">—</span><span class="hol-badge" id="todayHol" hidden></span></div>
         <div class="d2" id="todaySub">—</div>
@@ -118,14 +118,20 @@
         </div>
       </div>
 
-      <div class="foot-note">용코교대 v2.1 · 기록은 이 기기에만 저장됩니다</div>
+      <div class="foot-note">교대핏 v2.2 · 기록은 이 기기에만 저장됩니다</div>
     </section>
 
-    <!-- ============ 달력 ============ -->
-    <section class="tab" id="tab-calendar">
-      <div class="datebar">
-        <div class="d1">달력</div>
-        <div class="d2">날짜를 누르면 그날 기록을 고칩니다</div>
+    <!-- ============ 달력 (첫 화면) ============ -->
+    <section class="tab is-active" id="tab-calendar">
+      <div class="datebar cal-bar">
+        <div class="d2">날짜를 누르면 근무 변경·일정·기록을 고칩니다</div>
+      </div>
+
+      <!-- 오늘 바 — 한 줄로 오늘 근무 + 오운완·식단 원탭 -->
+      <div class="today-bar" id="todayBar">
+        <span class="tb-txt" id="tbTxt">—</span>
+        <button class="tb-btn" id="tbWorkout" data-k="workout" aria-pressed="false">오운완</button>
+        <button class="tb-btn" id="tbClean" data-k="clean" aria-pressed="false">식단</button>
       </div>
 
       <div class="card cal-card">
@@ -149,8 +155,9 @@
             <span class="lg"><i class="pt g"></i>식단 클린</span>
             <span class="lg"><i class="pt w"></i>체중</span>
             <span class="lg"><i class="pt r"></i>러닝</span>
+            <span class="lg"><i class="pt t"></i>대근·일정</span>
           </div>
-          <div class="cal-note">빨간 날짜 = 법정공휴일 (2026~2027 · 대체공휴일 포함). 임시공휴일은 반영되지 않습니다.</div>
+          <div class="cal-note">빨간 날짜 = 법정공휴일 (2026~2027 · 대체공휴일 포함). 임시공휴일은 반영되지 않습니다. 날짜 칸의 <b>대근·특근·연차·교육</b>은 그날 근무 변경 태그입니다.</div>
         </div>
 
         <div id="calAllView" hidden>
@@ -429,7 +436,7 @@
         <span class="cta-ar">↗</span>
       </a>
 
-      <div class="foot-note">용코교대 v2.1 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.2 · 킹용코</div>
     </section>
 
     <!-- ============ 설정 ============ -->
@@ -445,12 +452,24 @@
         <div class="help">밝은 화이트는 낮이나 밝은 곳에서 눈이 편한 고대비 화면입니다. 선택은 이 기기에 저장됩니다.</div>
       </div>
 
+      <div class="sec-head"><span>🔍 내 회사 찾기</span><span class="sub">고르면 교대·조·시간 자동</span></div>
+      <div class="card co-card">
+        <div class="co-search">
+          <span class="co-ico" aria-hidden="true">🔍</span>
+          <input class="co-input" id="coInput" type="text" placeholder="회사 이름 검색 — 예: 대한유화, SK하이닉스, 동서발전" autocomplete="off" aria-label="회사 이름 검색">
+        </div>
+        <div class="co-picked" id="coPicked" hidden></div>
+        <div class="chips co-chips" id="coChips"></div>
+        <div class="co-list" id="coList"></div>
+        <div class="co-note">※ 회사별·공장별로 세부 근무시간이나 조 순서는 다를 수 있어 [설정]에서 언제든 수정 가능합니다.</div>
+      </div>
+
       <div class="sec-head"><span>교대 형태</span></div>
       <div class="preset-list" id="presetList"></div>
 
-      <div class="card">
+      <div class="card" id="groupCard">
         <div class="field">
-          <label>내 조 이름 <i>1·2·3·4조 / A·B·C·D조</i></label>
+          <label>내 조 이름 <i>1·2·3·4·5조 / A·B·C·D·E조</i></label>
           <div class="seg small" id="groupStyleSeg" role="tablist" aria-label="조 이름 표기">
             <button class="seg-b" data-gstyle="abc" role="tab">A·B·C·D조</button>
             <button class="seg-b" data-gstyle="num" role="tab">1·2·3·4조</button>
@@ -515,16 +534,16 @@
         <div class="help">기록은 이 브라우저(localStorage)에만 저장됩니다. 백업 없이 브라우저 데이터를 지우면 기록도 사라집니다.</div>
       </div>
 
-      <div class="foot-note">용코교대 v2.1 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.2 · 킹용코</div>
     </section>
   </main>
 
   <nav class="tabbar">
-    <button class="tabbtn is-active" data-tab="today">
-      <span class="ti" data-icon="clock"></span><span>오늘</span>
-    </button>
-    <button class="tabbtn" data-tab="calendar">
+    <button class="tabbtn is-active" data-tab="calendar">
       <span class="ti" data-icon="calendar"></span><span>달력</span>
+    </button>
+    <button class="tabbtn" data-tab="today">
+      <span class="ti" data-icon="clock"></span><span>오늘</span>
     </button>
     <button class="tabbtn" data-tab="log">
       <span class="ti" data-icon="chart"></span><span>기록</span>
@@ -552,6 +571,13 @@
       <button class="sheet-x" data-close="1" aria-label="닫기">✕</button>
     </div>
     <div class="sheet-body">
+      <div class="field sched-field">
+        <label>근무 변경 · 일정 <i>대근·특근·연차·교육 원탭</i></label>
+        <div class="chips" id="sheetTags"></div>
+        <input type="text" id="sheetSched" class="input sched-in" maxlength="12"
+               placeholder="짧은 일정 — 예: 10.15, B조 대근" autocomplete="off">
+      </div>
+
       <div id="sheetCoach"></div>
 
       <div class="check-row tight">
@@ -601,15 +627,25 @@
       <span>날짜 계산 안 해도 됩니다. 나머지는 앱이 맞춥니다.</span>
     </div>
     <div class="setup-body">
-      <div class="setup-step"><span class="sn">1</span><b>교대 형태</b></div>
+      <div class="setup-step"><span class="sn">0</span><b>내 회사 찾기</b><i class="ss-opt">선택 — 고르면 1~3이 자동으로</i></div>
+      <div class="co-search small">
+        <span class="co-ico" aria-hidden="true">🔍</span>
+        <input class="co-input" id="setupCoInput" type="text" placeholder="회사 이름 검색 — 예: 대한유화, SK하이닉스" autocomplete="off" aria-label="회사 이름 검색">
+      </div>
+      <div class="co-picked" id="setupCoPicked" hidden></div>
+      <div class="chips co-chips" id="setupCoChips"></div>
+      <div class="co-list" id="setupCoList"></div>
+      <div class="co-note">※ 회사별·공장별로 세부 근무시간이나 조 순서는 다를 수 있어 [설정]에서 언제든 수정 가능합니다.</div>
+
+      <div class="setup-step" id="setupStep1"><span class="sn">1</span><b>교대 형태</b></div>
       <div class="chips" id="setupPresets"></div>
-      <div class="setup-step"><span class="sn">2</span><b>내 조</b></div>
+      <div class="setup-step" id="setupStep2"><span class="sn">2</span><b>내 조</b></div>
       <div class="seg small" id="setupGroupStyle" role="tablist" aria-label="조 이름 표기">
         <button class="seg-b" data-gstyle="abc" role="tab">A·B·C·D조</button>
         <button class="seg-b" data-gstyle="num" role="tab">1·2·3·4조</button>
       </div>
       <div class="chips" id="setupGroups"></div>
-      <div class="setup-step"><span class="sn">3</span><b>오늘 내 근무</b></div>
+      <div class="setup-step" id="setupStep3"><span class="sn">3</span><b>오늘 내 근무</b></div>
       <div class="today-pick" id="setupPick"></div>
       <div class="setup-note">나중에 [설정] 탭에서 언제든 다시 바꿀 수 있습니다.</div>
     </div>
