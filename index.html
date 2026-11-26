@@ -15,7 +15,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="app.css">
+<style>
+/* app.css를 못 불러온 경우에도 검색창·검색 버튼·요청 링크가 깨지지 않게 하는 최소 안전장치 (app.css가 오면 이 규칙을 덮어씁니다) */
+.co-search{display:flex;align-items:center;gap:7px;padding:9px 11px;border:1px solid #2A2A30;border-radius:12px;background:#16161A}
+.co-input{flex:1 1 auto;min-width:0;border:0;outline:none;background:none;font:inherit;color:#EEE}
+.co-go{flex:0 0 auto;border:0;border-radius:9px;padding:6px 11px;background:#FFD400;color:#0D0D0F;font:inherit;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer}
+.co-list{max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.co-ask-row{display:flex;gap:6px;align-items:stretch}
+.co-ask-b{flex:1 1 0;display:block;padding:9px 7px;border:1px solid #2A2A30;border-radius:11px;background:#1C1C21;color:#EEE;text-decoration:none;text-align:center;font-size:11px;line-height:1.35}
+</style>
+<link rel="stylesheet" href="app.css?v=2.2.2">
 <script>
 /* 저장해둔 화면 테마를 첫 그림 전에 적용 (흰 화면 깜빡임 방지) */
 (function () {
@@ -118,7 +127,7 @@
         </div>
       </div>
 
-      <div class="foot-note">교대핏 v2.2 · 기록은 이 기기에만 저장됩니다</div>
+      <div class="foot-note">교대핏 v2.2.2 · 기록은 이 기기에만 저장됩니다</div>
     </section>
 
     <!-- ============ 달력 (첫 화면) ============ -->
@@ -441,7 +450,7 @@
         <span class="cta-ar">↗</span>
       </a>
 
-      <div class="foot-note">교대핏 v2.2 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.2.2 · 킹용코</div>
     </section>
 
     <!-- ============ 설정 ============ -->
@@ -462,6 +471,7 @@
         <div class="co-search">
           <span class="co-ico" aria-hidden="true">🔍</span>
           <input class="co-input" id="coInput" type="text" placeholder="회사 이름 검색 — 예: 대한유화, SK하이닉스, 동서발전" autocomplete="off" aria-label="회사 이름 검색">
+          <button class="co-go" id="coGo" type="button" data-co-go="settings">검색</button>
         </div>
         <div class="co-picked" id="coPicked" hidden></div>
         <div class="chips co-chips" id="coChips"></div>
@@ -546,7 +556,7 @@
         <div class="help">기록은 이 브라우저(localStorage)에만 저장됩니다. 백업 없이 브라우저 데이터를 지우면 기록도 사라집니다.</div>
       </div>
 
-      <div class="foot-note">교대핏 v2.2 · 킹용코</div>
+      <div class="foot-note">교대핏 v2.2.2 · 킹용코</div>
     </section>
   </main>
 
@@ -643,6 +653,7 @@
       <div class="co-search small">
         <span class="co-ico" aria-hidden="true">🔍</span>
         <input class="co-input" id="setupCoInput" type="text" placeholder="회사 이름 검색 — 예: 대한유화, SK하이닉스" autocomplete="off" aria-label="회사 이름 검색">
+        <button class="co-go" id="setupCoGo" type="button" data-co-go="setup">검색</button>
       </div>
       <div class="co-picked" id="setupCoPicked" hidden></div>
       <div class="chips co-chips" id="setupCoChips"></div>
@@ -676,6 +687,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js"></script>
+<script src="app.js?v=2.2.2"></script>
 </body>
 </html>

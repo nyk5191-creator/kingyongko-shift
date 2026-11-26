@@ -1,5 +1,5 @@
 /* ===================================================================
-   교대핏 v2.2 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.2.2 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
@@ -7,6 +7,10 @@
    v2.2: 교대핏 리브랜딩 · 내 회사 찾기(업종별 40곳 검색) · 5조 3교대·주간연속 2교대
          · 첫 화면을 달력으로 + 한 줄 오늘 바(오운완·식단 원탭)
          · 날짜별 근무 변경 태그(대근·특근·연차·교육) + 짧은 일정 메모를 달력 칸에 표시
+   v2.2.1: 회사 추가 요청 버튼(네이버 메일·인스타 DM)
+   v2.2.2: 캐시버스트(app.css?v=2.2.2) + 서비스워커 네트워크 우선 → 구버전 CSS/JS 섞임 차단
+           · 검색창 옆 [검색] 버튼(클릭·Enter·한글 compositionend 모두) 
+           · 회사 목록을 검색어 없이도 ㄱㄴㄷ순 전체로 바로 노출(스크롤)
    =================================================================== */
 (function () {
   'use strict';
@@ -1297,16 +1301,14 @@
       }
     }
 
-    if (!s.open) {
-      listEl.innerHTML = '<div class="co-hint">업종을 고르거나 회사 이름을 검색하면<br>교대 형태 · 조 표기 · 근무 시간이 자동으로 맞춰집니다</div>';
-      return;
-    }
-    var rows = coResults(s);
+    /* 검색어가 비어 있으면 40곳 전체를 ㄱㄴㄷ순으로 바로 보여준다 (아래로 스크롤하며 보기) */
+    var rows = coResults(s).sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+    var isAll = !coNorm(s.q) && s.ind === 'all';
     if (!rows.length) {
       listEl.innerHTML = '<div class="co-hint">검색 결과가 없습니다. 다른 업종이나 다른 이름으로 찾아보세요.<br><b>없는 회사는 아래로 바로 요청할 수 있어요</b></div>' + coAskHTML(false);
       return;
     }
-    listEl.innerHTML = '<div class="co-cnt">' + rows.length + '곳</div>' +
+    listEl.innerHTML = '<div class="co-cnt">' + (isAll ? '전체 ' + rows.length + '곳' : rows.length + '곳') + ' · ㄱㄴㄷ순</div>' +
       rows.map(function (c) { return coItemHTML(c, scope); }).join('');
   }
 
@@ -1978,6 +1980,19 @@
       openSetup();
     });
 
+    /* 검색 실행 — 검색 버튼 클릭 · Enter · 한글 조합 완료에서 공통으로 부른다 */
+    function coSearch(scope, hideKeyboard) {
+      var s = coState[scope];
+      if (!s) return;
+      var inp = $(scope === 'settings' ? 'coInput' : 'setupCoInput');
+      if (inp) s.q = inp.value;
+      s.open = true;
+      renderCompanyBlock(scope);
+      var listEl = $(scope === 'settings' ? 'coList' : 'setupCoList');
+      if (listEl && listEl.scrollIntoView) listEl.scrollIntoView({ block: 'nearest' });
+      if (hideKeyboard && inp && inp.blur) inp.blur();
+    }
+
     /* 내 회사 찾기 — 검색 · 업종 칩 · 회사 선택 (설정 탭 + 첫 세팅 시트 공통) */
     [['coInput', 'settings'], ['setupCoInput', 'setup']].forEach(function (pair) {
       var inp = $(pair[0]);
@@ -1988,12 +2003,29 @@
         coState[scope].open = true;
         renderCompanyBlock(scope);
       });
+      /* 한글은 조합이 끝난 순간 값을 다시 읽어 필터링한다 (조합 중 글자로 걸러지는 문제 방지) */
+      inp.addEventListener('compositionend', function () {
+        coState[scope].q = inp.value;
+        coState[scope].open = true;
+        renderCompanyBlock(scope);
+      });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        if (e.isComposing || e.keyCode === 229) return;   /* 조합 중 Enter는 무시 */
+        e.preventDefault();
+        coSearch(scope, true);
+      });
       inp.addEventListener('focus', function () {
         coState[scope].open = true;
         renderCompanyBlock(scope);
       });
     });
     document.addEventListener('click', function (e) {
+      var go = e.target.closest('[data-co-go]');
+      if (go) {
+        coSearch(go.getAttribute('data-co-go'), true);
+        return;
+      }
       var ind = e.target.closest('[data-co-ind]');
       if (ind) {
         var sc = ind.getAttribute('data-co-scope');
@@ -2044,7 +2076,17 @@
       var ok = location.protocol === 'https:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
       if (ok) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('sw.js').catch(function () { });
+          var hadController = !!navigator.serviceWorker.controller;
+          var reloaded = false;
+          /* 구버전 SW → 새 SW로 교체되는 순간 한 번만 새로고침해서 화면을 최신으로 */
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!hadController || reloaded) return;
+            reloaded = true;
+            location.reload();
+          });
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            .then(function (reg) { if (reg && reg.update) return reg.update(); })
+            .catch(function () { });
         });
       }
     }
