@@ -18,6 +18,10 @@
   --yellow-ink:#FFD400; --yellow-ink2:#FFE873;
   --on-accent:#0D0D0F;
   --yellow-dim:rgba(var(--accent-rgb),.14);
+  /* 오늘 열 강조 (v2.5.4) */
+  --today-bg:rgba(255,212,0,.12);
+  --today-bd:rgba(255,212,0,.70);
+  --today-pill:#FFD400; --today-pill-ink:#0D0D0F;
   --d:#4C8DFF; --d-rgb:76,141,255; --d-bg:rgba(var(--d-rgb),.15);
   --a:#FFA24C; --a-rgb:255,162,76; --a-bg:rgba(var(--a-rgb),.15);
   --n:#B18CFF; --n-rgb:177,140,255; --n-bg:rgba(var(--n-rgb),.15);
@@ -56,6 +60,10 @@ html[data-theme="light"]{
   --yellow-ink:#8A6100; --yellow-ink2:#7A5600;
   --on-accent:#1A1400;
   --yellow-dim:rgba(var(--accent-rgb),.18);
+  /* 오늘 열 강조 (v2.5.4) — 흰 배경에서도 뜨도록 노란 테두리를 진하게 */
+  --today-bg:#FFF4CC;
+  --today-bd:#E9A800;
+  --today-pill:#F2B300; --today-pill-ink:#1A1400;
   --d:#1A63D8; --d-rgb:26,99,216; --d-bg:rgba(var(--d-rgb),.12);
   --a:#BE6600; --a-rgb:190,102,0; --a-bg:rgba(var(--a-rgb),.13);
   --n:#6B45D6; --n-rgb:107,69,214; --n-bg:rgba(var(--n-rgb),.11);
@@ -91,6 +99,10 @@ html[data-theme="navy"]{
   --yellow-ink:#FFD400; --yellow-ink2:#FFE873;
   --on-accent:#0F172A;
   --yellow-dim:rgba(var(--accent-rgb),.14);
+  /* 오늘 열 강조 (v2.5.4) */
+  --today-bg:rgba(255,212,0,.13);
+  --today-bd:rgba(255,212,0,.66);
+  --today-pill:#FFD400; --today-pill-ink:#0F172A;
   --d:#6BA6FF; --d-rgb:107,166,255; --d-bg:rgba(var(--d-rgb),.16);
   --a:#FFB067; --a-rgb:255,176,103; --a-bg:rgba(var(--a-rgb),.16);
   --n:#B49BFF; --n-rgb:180,155,255; --n-bg:rgba(var(--n-rgb),.16);
@@ -293,16 +305,32 @@ main{flex:1;padding-bottom:calc(84px + var(--safe-b))}
 }
 
 /* ---------- 7일 근무표 ---------- */
-.week-card{padding:12px 10px 10px}
-.week-grid{display:grid;grid-template-columns:34px repeat(7,1fr);gap:4px 2px;align-items:center}
+.week-card{padding:14px 10px 10px}
+.week-grid{display:grid;grid-template-columns:34px repeat(7,1fr);gap:4px 2px;align-items:center;position:relative;--wk-today:0}
+/* 오늘 열 — 헤더부터 마지막 조까지 셀마다 끊기지 않고 한 줄로 이어지는 세로 강조 (v2.5.4) */
+.week-grid::before{
+  content:"";position:absolute;z-index:0;pointer-events:none;
+  top:-6px;bottom:-6px;
+  left:calc(34px + var(--wk-today) * ((100% - 48px) * 0.142857 + 2px) - 1px);
+  width:calc((100% - 48px) * 0.142857 + 2px);
+  background:var(--today-bg);
+  border:2px solid var(--today-bd);
+  border-radius:14px;
+}
+.week-grid > *{position:relative;z-index:1}
 .wk-corner{}
-.wk-dow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding-bottom:2px;line-height:1.35}
+.wk-dow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding-bottom:2px;line-height:1.35;align-self:end}
 .wk-dow b{display:block;font-size:10.5px;color:var(--txt2);font-weight:800}
-.wk-dow.today b{color:var(--yellow-ink)}
+.wk-dow.today{color:var(--yellow-ink);font-weight:800}
+.wk-dow.today b{color:var(--yellow-ink);font-weight:900}
+.wk-today-pill{
+  display:inline-block;margin-bottom:2px;padding:1px 6px 2px;border-radius:999px;
+  background:var(--today-pill);color:var(--today-pill-ink);
+  font-size:8.5px;font-weight:900;line-height:1.4;letter-spacing:0;white-space:nowrap;
+}
 .wk-label{font-size:10.5px;font-weight:800;color:var(--muted);text-align:center;letter-spacing:-.02em}
 .wk-label.mine{color:var(--yellow-ink)}
 .wk-cell{display:grid;place-items:center;padding:3px 0;border-radius:10px}
-.wk-cell.today{background:rgba(var(--accent-rgb),.06)}
 .wk-cell.mine-row{}
 .dotc{
   display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
@@ -317,6 +345,7 @@ main{flex:1;padding-bottom:calc(84px + var(--safe-b))}
 .week-legend .lg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);font-weight:600}
 .week-legend .dotc{width:17px;height:17px;font-size:8.5px}
 .week-legend .mine{color:var(--yellow-ink)}
+.week-legend .today-lg{color:var(--yellow-ink);font-weight:800}
 
 /* ---------- 달력 ---------- */
 .cal-card{padding:14px 12px 12px}

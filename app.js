@@ -1167,15 +1167,19 @@
   /* 7일 근무표 */
   function renderWeek() {
     var G = getGroups();
-    var days = [];
-    for (var i = -1; i <= 5; i++) days.push(addDays(todayISO(), i));
     var t = todayISO();
+    var days = [];
+    for (var i = -1; i <= 5; i++) days.push(addDays(t, i));
 
     var html = '<div class="wk-corner"></div>';
     days.forEach(function (ds) {
       var d = parseISO(ds);
       var isHol = !!holOf(ds);
-      html += '<div class="wk-dow' + (ds === t ? ' today' : '') + (isHol ? ' hol' : '') + '"><b>' + DOW[d.getDay()] + '</b>' +
+      var isToday = ds === t;
+      /* 오늘 열 — 헤더에 '오늘' 필을 달고, 열 전체는 CSS가 한 줄로 이어서 강조 (v2.5.4) */
+      html += '<div class="wk-dow' + (isToday ? ' today' : '') + (isHol ? ' hol' : '') + '">' +
+        (isToday ? '<span class="wk-today-pill">오늘</span>' : '') +
+        '<b>' + DOW[d.getDay()] + '</b>' +
         (d.getMonth() + 1) + '/' + d.getDate() + '</div>';
     });
 
@@ -1189,7 +1193,12 @@
           '<span class="dotc ' + m.cls + '">' + m.short + '</span></div>';
       });
     }
-    $('weekGrid').innerHTML = html;
+    var wg = $('weekGrid');
+    if (wg) {
+      wg.innerHTML = html;
+      var ti = days.indexOf(t);
+      if (ti >= 0) wg.style.setProperty('--wk-today', String(ti));
+    }
   }
 
   /* ---------------- 렌더: 달력 ---------------- */
