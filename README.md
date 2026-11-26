@@ -2,6 +2,11 @@
 
 킹용코(@kingyongko) 교대근무 + 헬스 웹앱. **순수 HTML/CSS/JS**라서 이 폴더만 통째로 올리면 바로 돌아갑니다.
 
+> ## 🔗 공개 주소
+> **https://nyk5191-creator.github.io/kingyongko-shift/**
+> 이 저장소 `main` 브랜치 루트가 GitHub Pages로 그대로 서빙됩니다(`.nojekyll` 포함, 빌드 없음).
+> 아이폰 사파리는 **공유 → 홈 화면에 추가**, 갤럭시 크롬은 **⋮ → 홈 화면에 추가**로 앱처럼 설치합니다.
+
 ## 폴더 구성
 
 ```
@@ -38,7 +43,9 @@ python3 -m http.server 8123
 
 ## 배포 (정적 호스팅)
 
-- **GitHub Pages** — 이 폴더를 저장소 루트(또는 `docs/`)에 올리고 Settings → Pages에서 브랜치 선택.
+- **GitHub Pages** — 이미 배포됨: `main` 브랜치 루트 → https://nyk5191-creator.github.io/kingyongko-shift/
+  파일을 고쳐 `main`에 푸시하면 30~60초 뒤 자동 반영됩니다. 홈 화면에 이미 추가한 사용자는 온라인으로 한 번 열면 새 버전으로 갱신됩니다(서비스워커 네트워크 우선).
+  ⚠️ `sw.js`를 고쳤다면 `CACHE` 값을 `yongko-shift-v2.0.1`처럼 반드시 올려 주세요.
 - **Netlify / Vercel** — 폴더를 드래그해 배포. 빌드 명령 없음, 퍼블리시 디렉터리 = 이 폴더.
 - 배포 후 아이폰 사파리에서 열고 **공유 → 홈 화면에 추가**하면 앱처럼 전체 화면으로 뜹니다.
 - 서비스 워커 캐시를 갱신하려면 `sw.js`의 `CACHE` 값을 `yongko-shift-v2.0.1`처럼 올려 주세요.
