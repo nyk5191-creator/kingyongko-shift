@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.3.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.3.1`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,11 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.3.1 (2026-11-26)
+- **회사 추가 — `한국엔지니어링플라스틱`** (`석유화학 · 정유`): 4조 2교대 · A·B·C·D조 · 주 07:00~19:00 / 야 19:00~07:00, 별칭 `KEP` `한엔플` `한국엔지니어링`. 회사 목록 40곳 → 41곳.
+- `?v=2.3.1` 캐시버스트, `CACHE = yongko-shift-v2.3.1`.
+- 검수: 로컬(390×844) 검색 `한국엔지니어링플라스틱`/`한국엔지니어링`/`KEP`/`한엔플` 모두 1건 hit, 선택 시 `4조 2교대 · A·B·C·D조 · 주 07:00~19:00 / 야 19:00~07:00` 세팅, 전체 목록 `41곳`, 콘솔 에러 0건.
 
 ## v2.3.0 (2026-11-26)
 - **월급날** — 설정에 `월급날`(없음 / 1~31일 / 말일, 기본 25일) 추가. 달력 칸에 초록 테두리 + 초록 `월급`, 이달 근태 정산 카드에 `월급날 12월 25일 · D-5`. 30일·31일처럼 없는 달은 말일로 당김.
