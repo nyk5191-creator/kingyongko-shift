@@ -1,5 +1,5 @@
-/* 용코교대 service worker v2 — 앱 껍데기 캐시 (오프라인 실행용) */
-var CACHE = 'yongko-shift-v2.0.0';
+/* 용코교대 service worker v2.1 — 앱 껍데기 캐시 (오프라인 실행용) */
+var CACHE = 'yongko-shift-v2.1.0';
 var ASSETS = [
   './',
   './index.html',

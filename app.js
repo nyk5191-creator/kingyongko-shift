@@ -1,15 +1,34 @@
 /* ===================================================================
-   용코교대 v2.0 — 교대근무 + 헬스·식단 코칭 PWA
+   용코교대 v2.1 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
-   v2: 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
+   v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
+   v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
+         · 오늘 탭 코칭 1줄 요약(접기/펼치기) · 오늘·내일 흐름으로 고르는 세팅
    =================================================================== */
 (function () {
   'use strict';
 
   /* ---------------- 상수 ---------------- */
   var LS_KEY = 'kingyongko_shift_v1';
+  var STATE_V = 3;
   var PARTS = ['가슴', '등', '어깨', '하체', '팔', '복근', '유산소'];
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  var ABC = ['A', 'B', 'C', 'D'];
+
+  /* 조 순환 순서 — 앞 조가 먼저 주간을 시작하고, 뒤 조는 그만큼 밀린다.
+     기본 A→C→D→B: 11/26(목) 기준 A조 야간 · B조 휴무 · C조 휴무 · D조 주간 */
+  var GROUP_ORDERS = [
+    { id: 'ACDB', label: 'A→C→D→B', note: '기본' },
+    { id: 'ABCD', label: 'A→B→C→D' },
+    { id: 'ADCB', label: 'A→D→C→B' }
+  ];
+
+  /* 화면 테마 — CSS의 html[data-theme] 블록과 짝 */
+  var THEMES = [
+    { id: 'dark', name: '다크 골드', bg: '#0D0D0F', card: '#17171B', line: '#33333B', accent: '#FFD400' },
+    { id: 'light', name: '밝은 화이트', bg: '#F5F6F8', card: '#FFFFFF', line: '#C7CDD8', accent: '#F2B300' },
+    { id: 'navy', name: '네이비 블루', bg: '#0F172A', card: '#16213A', line: '#33456A', accent: '#FFD400' }
+  ];
 
   /* 2026~2027 대한민국 법정공휴일 (대체공휴일 포함).
      근거: 「관공서의 공휴일에 관한 규정」 제2조·제3조, 우주항공청 월력요항(2026·2027).
@@ -71,12 +90,9 @@
     O: { code: 'O', short: '휴', badge: '휴', name: '휴무', cls: 'o' }
   };
 
-  var COLOR = {
-    D: ['#4C8DFF', 'rgba(76,141,255,.15)', 'rgba(76,141,255,.38)', 'rgba(76,141,255,.20)'],
-    A: ['#FFA24C', 'rgba(255,162,76,.15)', 'rgba(255,162,76,.38)', 'rgba(255,162,76,.20)'],
-    N: ['#B18CFF', 'rgba(177,140,255,.15)', 'rgba(177,140,255,.38)', 'rgba(177,140,255,.20)'],
-    O: ['#35D07F', 'rgba(53,208,127,.14)', 'rgba(53,208,127,.36)', 'rgba(53,208,127,.18)']
-  };
+  /* 근무 색은 테마마다 CSS 변수(--d/--a/--n/--o + *-rgb)에 들어 있으니 JS는 이름만 안다 */
+  var SHIFT_VAR = { D: '--d', A: '--a', N: '--n', O: '--o' };
+  var SHIFT_RGB = { D: '--d-rgb', A: '--a-rgb', N: '--n-rgb', O: '--o-rgb' };
 
   var PRESETS = [
     {
@@ -132,6 +148,7 @@
   var COACH = {
     D: {
       chip: '회복 우선',
+      short: ['🏋️ 퇴근 후 30~40분 운동', '🍱 점심 탄단 꽉 채우기', '☕ 오후 2시 카페인 컷'],
       workout: {
         lead: '오늘은 회복이 먼저 — 30~40분 자극, 아니면 완전 휴식',
         rows: [
@@ -163,6 +180,7 @@
     },
     A: {
       chip: '오전 운동',
+      short: ['🏋️ 오전 9시 30분 60분 운동', '🍱 근무 전 탄수 충실히', '☕ 18시 카페인 컷'],
       workout: {
         lead: '오전이 유일한 운동 창 — 60분에 끝내기',
         rows: [
@@ -194,6 +212,7 @@
     },
     N: {
       chip: '기상 후 60분',
+      short: ['🏋️ 기상 후 60분 운동', '🍱 퇴근 후 단백질 30~40g', '☕ 새벽 2시 카페인 컷'],
       workout: {
         lead: '기상 60분 안에 웨이트 60분',
         rows: [
@@ -226,6 +245,7 @@
     },
     O: {
       chip: '90분 고강도',
+      short: ['🏋️ 고강도 90분 운동', '🍱 3~4끼 단백질 120~150g', '☕ 오후 2시 카페인 컷'],
       workout: {
         lead: '고강도 90분 — 중량 제대로 치는 날',
         rows: [
@@ -295,15 +315,20 @@
     return { km: Math.round(km * 10) / 10, days: days };
   }
   /* 원탭 세팅 버튼에 쓰는 이름 — 휴무는 '오프'로 */
-  function pickName(code) { return code === 'O' ? '오프' : SHIFT[code].name; }
+  /* 화면에 읽히는 근무 이름 — 휴무까지 '휴무'로 통일 */
+  function pickName(code) { return (SHIFT[code] || SHIFT.O).name; }
 
   /* ---------------- 상태 ---------------- */
   var DEFAULTS = {
-    v: 2,
+    v: STATE_V,
     presetId: '4-2',
     custom: '주,주,휴,휴,야,야,휴,휴',
     customGroups: 4,
     group: 1,
+    groupStyle: 'abc',     /* 'abc' = A·B·C·D조(기본) · 'num' = 1·2·3·4조 */
+    groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
+    theme: 'dark',
+    coachOpen: false,
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
     logs: {},
@@ -318,11 +343,15 @@
     try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { s = null; }
     if (!s || typeof s !== 'object') s = {};
     var out = {
-      v: 2,
+      v: STATE_V,
       presetId: s.presetId || DEFAULTS.presetId,
       custom: s.custom || DEFAULTS.custom,
       customGroups: s.customGroups || DEFAULTS.customGroups,
       group: s.group || 1,
+      groupStyle: s.groupStyle === 'num' ? 'num' : 'abc',
+      groupOrder: /^[ABCD]{4}$/.test(String(s.groupOrder || '')) ? s.groupOrder : DEFAULTS.groupOrder,
+      theme: ['dark', 'light', 'navy'].indexOf(s.theme) >= 0 ? s.theme : DEFAULTS.theme,
+      coachOpen: s.coachOpen === true,
       anchor: s.anchor || todayISO(),
       times: Object.assign({}, DEFAULTS.times, s.times || {}),
       logs: (s.logs && typeof s.logs === 'object') ? s.logs : {},
@@ -332,7 +361,35 @@
     if (!PRESETS.some(function (p) { return p.id === out.presetId; }) && out.presetId !== 'custom') {
       out.presetId = DEFAULTS.presetId;
     }
+
+    /* v2.0 → v2.1 이사: 조 오프셋 계산이 바뀌었으므로(기본 A→C→D→B),
+       저장된 기준일을 새 계산에 맞춰 다시 잡는다.
+       사용자가 골랐던 '오늘 내 근무'는 그대로 유지된다. */
+    if ((s.v || 2) < STATE_V && s.anchor) {
+      var info = cycleOfState(out);
+      var M = info.cycle.length, GG = info.groups;
+      var step = Math.max(1, Math.round(M / GG));
+      var g = Math.max(1, Math.min(GG, out.group));
+      var dOld = dayDiff(out.anchor, todayISO());
+      var oldPos = ((dOld + (g - 1) * step) % M + M) % M;
+      var back = ((oldPos - offsetFor(out.groupOrder, g, M, GG)) % M + M) % M;
+      out.anchor = addDays(todayISO(), -back);
+    }
     return out;
+  }
+
+  /* 저장된 상태(s)만 보고 주기·조 수를 구한다 — load() 안에서 쓰려고 state에 의존하지 않게 분리 */
+  function cycleOfState(s) {
+    var p = null;
+    for (var i = 0; i < PRESETS.length; i++) {
+      if (PRESETS[i].id === s.presetId) p = PRESETS[i];
+    }
+    if (p) return { cycle: p.cycle.slice(), groups: p.groups };
+    var c = parseCycle(s.custom);
+    return {
+      cycle: (c && c.length ? c : PRESETS[0].cycle.slice()),
+      groups: Math.max(1, Math.min(4, s.customGroups || 4))
+    };
   }
 
   function save() {
@@ -359,19 +416,54 @@
     var p = getPreset();
     return p ? p.name : '커스텀 주기';
   }
+  /* 조 수만큼의 이름(A·B·C·D) */
+  function groupLetters(G) {
+    var out = [];
+    for (var i = 1; i <= G; i++) out.push(ABC[(i - 1) % 4]);
+    return out;
+  }
+
+  /* 조 순환 순서 → 조별 주기 오프셋.
+     순서의 첫 조가 기준(0)이고, 뒤 조는 한 칸(step일)씩 앞당겨 시작한 것으로 본다.
+     A→C→D→B(기본) · 8일 주기 4조 → A 0 · C 6 · D 4 · B 2 */
+  function offsetFor(order, g, N, G) {
+    var letters = groupLetters(G);
+    var raw = String(order || 'ACDB').toUpperCase().replace(/[^ABCD]/g, '');
+    if (raw.length !== 4) raw = 'ACDB';
+    var ord = [];
+    raw.split('').forEach(function (l) {
+      if (ord.indexOf(l) < 0 && letters.indexOf(l) >= 0) ord.push(l);
+    });
+    letters.forEach(function (l) { if (ord.indexOf(l) < 0) ord.push(l); });
+    var step = Math.max(1, Math.round(N / G));
+    var idx = Math.max(1, Math.min(G, Math.round(g || 1))) - 1;
+    var k = ord.indexOf(letters[idx]);
+    if (k < 0) k = idx;
+    return ((-k * step) % N + N) % N;
+  }
+
+  function groupOffset(g) {
+    var cyc = getCycle();
+    return offsetFor(state.groupOrder, g, cyc.length, getGroups());
+  }
+
+  /* 조 이름 표기 — 기본 A·B·C·D조, 설정에서 1·2·3·4조로 전환 */
+  function groupName(g) {
+    var n = Math.max(1, Math.round(g || 1));
+    return state.groupStyle === 'num' ? (n + '조') : (ABC[(n - 1) % 4] + '조');
+  }
+
   function shiftFor(iso, group0) {
-    var cyc = getCycle(), N = cyc.length, G = getGroups();
-    var off = Math.max(1, Math.round(N / G));
+    var cyc = getCycle(), N = cyc.length;
     var d = dayDiff(state.anchor, iso);
-    var pos = ((d + group0 * off) % N + N) % N;
+    var pos = ((d + groupOffset(group0 + 1)) % N + N) % N;
     return cyc[pos] || 'O';
   }
   function myShift(iso) { return shiftFor(iso, Math.max(0, state.group - 1)); }
   function cyclePos(iso) {
-    var cyc = getCycle(), N = cyc.length, G = getGroups();
-    var off = Math.max(1, Math.round(N / G));
+    var cyc = getCycle(), N = cyc.length;
     var d = dayDiff(state.anchor, iso);
-    return ((d + (state.group - 1) * off) % N + N) % N;
+    return ((d + groupOffset(state.group)) % N + N) % N;
   }
 
   var TOKENS = {
@@ -421,13 +513,20 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function cssVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    v = (v || '').trim();
+    return v || (fallback || '');
+  }
   function setShiftVars(code) {
-    var c = COLOR[code] || COLOR.O;
+    var k = SHIFT_VAR[code] ? code : 'O';
+    var c = cssVar(SHIFT_VAR[k], '#35D07F');
+    var rgb = cssVar(SHIFT_RGB[k], '53,208,127');
     var r = document.documentElement.style;
-    r.setProperty('--sc', c[0]);
-    r.setProperty('--sc-bg', c[1]);
-    r.setProperty('--sc-bd', c[2]);
-    r.setProperty('--sc-glow', c[3]);
+    r.setProperty('--sc', c);
+    r.setProperty('--sc-bg', 'rgba(' + rgb + ',.15)');
+    r.setProperty('--sc-bd', 'rgba(' + rgb + ',.38)');
+    r.setProperty('--sc-glow', 'rgba(' + rgb + ',.20)');
   }
 
   var toastTimer = null;
@@ -442,7 +541,49 @@
   /* ---------------- 렌더: 상단 ---------------- */
   function renderTop() {
     var cyc = getCycle();
-    $('topSub').textContent = presetName() + ' · ' + state.group + '조 · ' + cyc.length + '일 주기';
+    $('topSub').textContent = presetName() + ' · ' + groupName(state.group) + ' · ' + cyc.length + '일 주기';
+  }
+
+  /* ---------------- 화면 테마 ---------------- */
+  function themeMeta(id) {
+    for (var i = 0; i < THEMES.length; i++) {
+      if (THEMES[i].id === id) return THEMES[i];
+    }
+    return THEMES[0];
+  }
+  function applyTheme(id, persist) {
+    var t = themeMeta(id).id;
+    document.documentElement.setAttribute('data-theme', t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', themeMeta(t).bg);
+    if (persist) { state.theme = t; save(); }
+    /* 테마가 바뀌면 CSS 변수 값도 바뀌므로 근무 색을 다시 읽어 준다 */
+    setShiftVars(myShift(todayISO()));
+    renderThemePick();
+  }
+  function renderThemePick() {
+    var box = $('themePick');
+    if (!box) return;
+    box.innerHTML = THEMES.map(function (t) {
+      var on = t.id === state.theme;
+      return '<button class="th-btn' + (on ? ' on' : '') + '" data-theme="' + t.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="th-sw" style="background:' + t.bg + ';border-color:' + t.line + '">' +
+          '<i style="background:' + t.card + '"></i>' +
+          '<i style="background:' + t.accent + '"></i>' +
+          '<i style="background:' + t.line + '"></i>' +
+        '</span>' +
+        '<span class="th-name">' + t.name + '</span>' +
+      '</button>';
+    }).join('');
+  }
+  /* 조 이름 표기 토글 상태 */
+  function syncGroupStyle() {
+    var list = document.querySelectorAll('[data-gstyle]');
+    for (var i = 0; i < list.length; i++) {
+      var on = list[i].getAttribute('data-gstyle') === state.groupStyle;
+      list[i].classList.toggle('is-on', on);
+      list[i].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
   }
 
   /* ---------------- 렌더: 오늘 ---------------- */
@@ -494,22 +635,22 @@
       '<div class="sc-top">' +
         '<div class="sc-badge ' + meta.cls + (code === 'O' ? ' off' : '') + '">' + (code === 'O' ? 'OFF' : code) + '</div>' +
         '<div class="sc-main">' +
-          '<div class="sc-name"><b>' + meta.name + '</b><i>' + state.group + '조 · 주기 ' + (cyclePos(t) + 1) + '/' + cyc.length + '</i></div>' +
+          '<div class="sc-name"><b>' + meta.name + '</b><i>' + groupName(state.group) + ' · 주기 ' + (cyclePos(t) + 1) + '/' + cyc.length + '</i></div>' +
           '<div class="sc-time">' + timeTxt + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="sc-status"><span class="pulse"></span><span>' + st.html + '</span></div>' +
       (code === 'O' ? '' : '<div class="sc-bar"><span style="width:' + Math.max(2, Math.min(100, st.pct)).toFixed(1) + '%"></span></div>');
 
-    /* 코칭 칩 */
-    $('coachChip').textContent = COACH[code].chip;
-
-    /* 코칭 3카드 */
+    /* 코칭 — 1줄 요약 + (자세히 펼칠 때) 3카드 */
     var c = COACH[code];
+    $('coachChip').textContent = c.chip;
+    $('coachLine').textContent = c.short.join(' · ');
     $('coachCards').innerHTML =
       coachCard(ICON.dumbbell, '오늘 운동', c.workout) +
       coachCard(ICON.bowl, '오늘 식단 타이밍', c.diet) +
       coachCard(ICON.coffee, '카페인 · 수면', c.caffeine);
+    applyCoachOpen();
 
     /* 체크 상태 */
     var lg = getLog(t);
@@ -523,6 +664,19 @@
     if (document.activeElement !== mi) mi.value = lg.memo || '';
 
     renderWeek();
+  }
+
+  /* 코칭 요약 카드 접기/펼치기 상태 반영 */
+  function applyCoachOpen() {
+    var sum = $('coachSum'), box = $('coachCards'), btn = $('coachToggle');
+    if (!sum || !box || !btn) return;
+    var on = !!state.coachOpen;
+    sum.classList.toggle('open', on);
+    box.hidden = !on;
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (btn.firstChild && btn.firstChild.nodeType === 3) {
+      btn.firstChild.nodeValue = on ? '접기' : '자세히';
+    }
   }
 
   /* 오늘 탭 부제 — 이달 오운완·식단 클린·러닝 누적 */
@@ -574,7 +728,7 @@
 
     for (var g = 1; g <= G; g++) {
       var mine = g === state.group;
-      html += '<div class="wk-label' + (mine ? ' mine' : '') + '">' + g + '조</div>';
+      html += '<div class="wk-label' + (mine ? ' mine' : '') + '">' + groupName(g) + '</div>';
       days.forEach(function (ds) {
         var code = shiftFor(ds, g - 1);
         var m = SHIFT[code];
@@ -693,7 +847,7 @@
       for (var g = 1; g <= G; g++) {
         var mine = g === state.group;
         html += '<div class="wk-line wk-row' + (mine ? ' mine' : '') + '">' +
-          '<span class="wk-rl">' + g + '조</span>';
+          '<span class="wk-rl">' + groupName(g) + '</span>';
         for (var d2 = 0; d2 < 7; d2++) {
           var day2 = w * 7 + d2 - firstDow + 1;
           if (day2 < 1 || day2 > lastDay) { html += '<span class="wk-c"></span>'; continue; }
@@ -819,17 +973,17 @@
     var area = line + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + H + ' L' + pts[0][0].toFixed(1) + ' ' + H + ' Z';
     var dots = pts.map(function (p, i) {
       var last = i === pts.length - 1;
-      return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (last ? 3.4 : 2) + '" fill="' + (last ? '#FFD400' : '#1E1E24') + '" stroke="#FFD400" stroke-width="' + (last ? 2 : 1.3) + '"/>';
+      return '<circle class="ch-dot' + (last ? ' last' : '') + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (last ? 3.4 : 2) + '"/>';
     }).join('');
     var lastV = vals[vals.length - 1];
     box.innerHTML =
       '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' +
       '<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#FFD400" stop-opacity=".28"/>' +
-      '<stop offset="100%" stop-color="#FFD400" stop-opacity="0"/>' +
+      '<stop class="ch-g0" offset="0%"/>' +
+      '<stop class="ch-g1" offset="100%"/>' +
       '</linearGradient></defs>' +
-      '<path d="' + area + '" fill="url(#wg)"/>' +
-      '<path d="' + line + '" fill="none" stroke="#FFD400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path class="ch-area" d="' + area + '"/>' +
+      '<path class="ch-line" d="' + line + '"/>' +
       dots +
       '</svg>';
     var first = vals[0];
@@ -859,21 +1013,32 @@
         '</span>' +
       '</button>';
 
-    /* 조 칩 */
+    /* 테마 */
+    renderThemePick();
+
+    /* 조 이름 표기 + 조 칩 */
     var G = getGroups();
     var chips = '';
     for (var g = 1; g <= G; g++) {
-      chips += '<button class="chip' + (state.group === g ? ' on' : '') + '" data-group="' + g + '">' + g + '조</button>';
+      chips += '<button class="chip' + (state.group === g ? ' on' : '') + '" data-group="' + g + '">' + groupName(g) + '</button>';
     }
     $('groupChips').innerHTML = chips;
+    syncGroupStyle();
 
-    /* 오늘 내 근무 — 원탭 세팅 */
+    /* 조 순환 순서 */
+    $('groupOrderChips').innerHTML = GROUP_ORDERS.map(function (o) {
+      return '<button class="chip' + (state.groupOrder === o.id ? ' on' : '') + '" data-gorder="' + o.id + '">' +
+        o.label + (o.note ? ' <i>' + o.note + '</i>' : '') + '</button>';
+    }).join('');
+
+    /* 오늘 내 근무 — 오늘·내일 흐름으로 고르기 */
     renderTodayPick($('todayPick'), !state.setupDone);
     var tIdx = cyclePos(todayISO());
     var tc = getCycle()[tIdx] || 'O';
+    var tcN = myShift(addDays(todayISO(), 1));
     $('todayPickNote').innerHTML =
-      '지금 설정 — 오늘은 <b>' + (tIdx + 1) + '일차 ' + pickName(tc) + '</b><br>' +
-      '<span style="color:#5F5F69">기준일 ' + state.anchor + ' = ' + state.group + '조 주기의 1일째</span>';
+      '지금 설정 — 오늘 <b>' + pickName(tc) + '</b> · 내일 <b>' + pickName(tcN) + '</b> · ' + groupName(state.group) + '<br>' +
+      '<span style="color:var(--faint)">기준일 ' + state.anchor + ' = ' + groupName(state.group) + ' 주기의 1일째</span>';
 
     $('anchorInput').value = state.anchor;
 
@@ -894,9 +1059,9 @@
     }).join('');
     $('cyclePreview').innerHTML =
       '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px">' + prev + '</div>' +
-      presetName() + ' · ' + cyc.length + '일 주기 · 지금 <b style="color:#FFD400">' + state.group + '조</b> · 조마다 ' +
+      presetName() + ' · ' + cyc.length + '일 주기 · 지금 <b style="color:var(--yellow-ink)">' + groupName(state.group) + '</b> · 조마다 ' +
       Math.max(1, Math.round(cyc.length / getGroups())) + '일씩 밀림<br>' +
-      '<span style="color:#5F5F69">기준일 ' + state.anchor + ' = ' + state.group + '조의 주기 1일째</span>';
+      '<span style="color:var(--faint)">기준일 ' + state.anchor + ' = ' + groupName(state.group) + '의 주기 1일째</span>';
 
     /* 시간 */
     ['D', 'A', 'N'].forEach(function (c) {
@@ -908,27 +1073,55 @@
     $('customErr').hidden = true;
   }
 
-  /* ---------------- 오늘 내 근무 원탭 세팅 ---------------- */
+  /* ---------------- 오늘 내 근무 — 오늘·내일 흐름으로 고르기 ---------------- */
+  /* 주기의 각 자리를 '오늘 X (내일도 X / 내일 Y · 다다음날 Z)' 문장으로 바꾼다.
+     일차 번호는 쓰지 않고, 같은 문장이 둘 이상이면 그때만 작은 일차 태그를 붙인다. */
+  function flowOptions(cyc) {
+    var N = cyc.length, items = [];
+    for (var i = 0; i < N; i++) {
+      var t = cyc[i], tm = cyc[(i + 1) % N], dd = cyc[(i + 2) % N];
+      var pair = (tm === t) ? '내일도 ' + pickName(tm) : '내일 ' + pickName(tm);
+      if (t === 'O' && tm === 'O') pair += ' · 다다음날 ' + pickName(dd);
+      items.push({ idx: i, code: t, pair: pair });
+    }
+    /* 오늘 근무까지 같은 문장이 둘 이상일 때만 다다음날로 구분하고,
+       그래도 같으면 작은 일차 태그를 붙인다 (대부분은 태그 없이 구분된다) */
+    var key = function (it) { return it.code + '|' + it.pair; };
+    var count = {};
+    items.forEach(function (it) { count[key(it)] = (count[key(it)] || 0) + 1; });
+    items.forEach(function (it) {
+      if (count[key(it)] > 1 && it.pair.indexOf('다다음날') < 0) {
+        it.pair += ' · 다다음날 ' + pickName(cyc[(it.idx + 2) % N]);
+      }
+    });
+    var count2 = {};
+    items.forEach(function (it) { count2[key(it)] = (count2[key(it)] || 0) + 1; });
+    items.forEach(function (it) {
+      it.tag = count2[key(it)] > 1 ? ((it.idx + 1) + '일차') : '';
+      it.html = '오늘 <b class="' + SHIFT[it.code].cls + '">' + pickName(it.code) + '</b> <em>(' + esc(it.pair) + ')</em>';
+    });
+    return items;
+  }
+
   function renderTodayPick(box, noHighlight) {
     if (!box) return;
-    var cyc = getCycle(), t = todayISO(), cur = cyclePos(t);
-    box.innerHTML = cyc.map(function (code, i) {
-      var m = SHIFT[code];
-      var on = !noHighlight && i === cur;
-      return '<button class="tpick' + (on ? ' on' : '') + '" data-idx="' + i + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
-        '<span class="tp-n">' + (i + 1) + '일차</span>' +
-        '<span class="tp-s ' + m.cls + '">' + pickName(code) + '</span>' +
+    var cyc = getCycle(), cur = cyclePos(todayISO());
+    box.innerHTML = flowOptions(cyc).map(function (o) {
+      var on = !noHighlight && o.idx === cur;
+      return '<button class="tpick' + (on ? ' on' : '') + '" data-idx="' + o.idx + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="tp-dot ' + SHIFT[o.code].cls + '">' + SHIFT[o.code].short + '</span>' +
+        '<span class="tp-lbl">' + o.html + '</span>' +
+        (o.tag ? '<span class="tp-tag">' + o.tag + '</span>' : '') +
         '</button>';
     }).join('');
   }
 
   /* 오늘의 주기 위치(idx)를 받아 기준일을 역산한다.
-     shiftFor()는 ((오늘-anchor)+(조-1)*off) % N = idx 가 되도록 anchor를 잡으면 된다. */
+     오늘의 위치 = (오늘-anchor + 조 오프셋) % N 이므로, anchor = 오늘 - (idx - 오프셋). */
   function applyTodayShift(idx) {
-    var cyc = getCycle(), N = cyc.length, G = getGroups();
+    var cyc = getCycle(), N = cyc.length;
     if (!(idx >= 0 && idx < N)) return;
-    var off = Math.max(1, Math.round(N / G));
-    var back = ((idx - (state.group - 1) * off) % N + N) % N;
+    var back = ((idx - groupOffset(state.group)) % N + N) % N;
     state.anchor = addDays(todayISO(), -back);
     state.setupDone = true;
     save();
@@ -938,13 +1131,14 @@
     renderLog();
     if (curTab === 'settings') renderSettings();
     renderSetup();
-    toast('오늘 내 근무 = ' + (idx + 1) + '일차 ' + pickName(cyc[idx]));
+    toast('오늘 ' + pickName(cyc[idx]) + ' · 내일 ' + pickName(cyc[(idx + 1) % N]) + ' 로 맞췄습니다');
   }
 
   /* ---------------- 첫 방문 · 10초 세팅 ---------------- */
   function renderSetup() {
     var sp = $('setupPresets');
     if (!sp) return;
+    syncGroupStyle();
     sp.innerHTML = PRESETS.map(function (x) {
       return '<button class="chip' + (x.id === state.presetId ? ' on' : '') + '" data-spreset="' + x.id + '">' + x.name + '</button>';
     }).join('') +
@@ -952,7 +1146,7 @@
 
     var G = getGroups(), g = '';
     for (var i = 1; i <= G; i++) {
-      g += '<button class="chip' + (state.group === i ? ' on' : '') + '" data-sgroup="' + i + '">' + i + '조</button>';
+      g += '<button class="chip' + (state.group === i ? ' on' : '') + '" data-sgroup="' + i + '">' + groupName(i) + '</button>';
     }
     $('setupGroups').innerHTML = g;
 
@@ -1007,8 +1201,8 @@
     $('sheetDate').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ')';
     var w = shiftWindow(iso, code);
     $('sheetShift').textContent = code === 'O'
-      ? meta.name + ' · ' + state.group + '조'
-      : meta.name + ' ' + w.st + ' ~ ' + (w.cross ? '익일 ' : '') + w.en + ' · ' + state.group + '조';
+      ? meta.name + ' · ' + groupName(state.group)
+      : meta.name + ' ' + w.st + ' ~ ' + (w.cross ? '익일 ' : '') + w.en + ' · ' + groupName(state.group);
     var hol = holOf(iso);
     var hb = $('sheetHol');
     if (hol) { hb.textContent = '공휴일 · ' + hol[1]; hb.hidden = false; }
@@ -1232,6 +1426,48 @@
       renderSheetParts();
     });
 
+    /* 오늘 코칭 요약 카드 펼치기/접기 */
+    $('coachToggle').addEventListener('click', function () {
+      state.coachOpen = !state.coachOpen;
+      save();
+      applyCoachOpen();
+    });
+
+    /* 화면 테마 */
+    $('themePick').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-theme]');
+      if (!b) return;
+      var id = b.getAttribute('data-theme');
+      if (id === state.theme) return;
+      applyTheme(id, true);
+      toast(themeMeta(id).name);
+    });
+
+    /* 조 이름 표기 — 설정 탭과 첫 세팅 공통 */
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-gstyle]');
+      if (!b) return;
+      var v = b.getAttribute('data-gstyle');
+      if (v === state.groupStyle) return;
+      state.groupStyle = v;
+      save();
+      renderAll();
+      renderSettings();
+      renderSetup();
+      toast(v === 'num' ? '1·2·3·4조로 표기합니다' : 'A·B·C·D조로 표기합니다');
+    });
+
+    /* 조 순환 순서 */
+    $('groupOrderChips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-gorder]');
+      if (!b) return;
+      state.groupOrder = b.getAttribute('data-gorder');
+      save();
+      renderAll();
+      renderSettings();
+      toast('조 순환 순서 ' + state.groupOrder.split('').join(' → '));
+    });
+
     /* 설정: 프리셋 */
     $('presetList').addEventListener('click', function (e) {
       var b = e.target.closest('[data-preset]');
@@ -1379,6 +1615,7 @@
   /* ---------------- 시작 ---------------- */
   function boot() {
     if (!state.anchor) state.anchor = todayISO();
+    applyTheme(state.theme, false);   /* 저장된 테마를 첫 페인트 전에 적용 */
     hydrateIcons(document);
     bind();
     renderTop();
