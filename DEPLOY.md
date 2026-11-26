@@ -33,6 +33,8 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - 생성 스크립트: `work/shift_app_qa/make_icons_v232.py` (이전 아이콘 백업: `work/shift_app_qa/icons_v231_backup/`).
 - **상단 로고 배지** — `<span class="brand-mark">핏</span>` → `<img class="brand-mark" src="icon-192.png?v=2.3.2">` 30×30, CSS 배경/글자 스타일 제거.
 - `?v=2.3.2` 캐시버스트(app.css·app.js·아이콘 링크), `CACHE = yongko-shift-v2.3.2`, 하단 표기 `교대핏 v2.3.2`.
+- 검수(2026-11-27 00:05 · Pages `built` 5941104): 라이브 HTTP 200 + MD5 일치 — `icon-512.png?/·p` `ab2971…`, `icon-192.png` `e9bedd…`, `apple-touch-icon.png` `6d8f18…`, `favicon-32.png` `f12e89…`, `icon-maskable-512.png` `d98a56…`, `icon-maskable-192.png` `68a145…`, `index.html` `bd940e…`, `sw.js` `c4aba4…`, `app.css?v=2.3.2` `ce35d2…`, `app.js?v=2.3.2` `9d9f1b…`. 쿼리 없는 아이콘 경로도 새 파일로 교체 확인(GitHub CDN 잔여 캐시 없음).
+  - 라이브 화면: 상단 배지 `<img class=brand-mark>` naturalSize 192×192, 표시 30×30 · radius 9px · object-fit cover, 리소스 200(404 0건).
 
 ## v2.3.1 (2026-11-26)
 - **회사 추가 — `한국엔지니어링플라스틱`** (`석유화학 · 정유`): 4조 2교대 · A·B·C·D조 · 주 07:00~19:00 / 야 19:00~07:00, 별칭 `KEP` `한엔플` `한국엔지니어링`. 회사 목록 40곳 → 41곳.
