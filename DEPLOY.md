@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.4.1`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.0`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,18 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.0 (2026-11-27) — 가이드 분리(러닝·건강·수면) + 탄단지·칼로리 계산기
+- **가이드 칩 6개** — `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🏃 러닝 | 🩺 건강·수면 | 🧮 칼로리 계산기`. `GCATS = ['all','ebook','qa','run','health','calc']`, `.gblock[data-cat]` 7개(`start`·`ebook`·`qa`·`run`·`health`·`calc`·`cta`).
+  - 기존 `🏃 러닝·건강`(run)을 둘로 — `run` = 심박수 존(Zone 2/4) + 교대근무자 러닝 가이드(+기록 행 신설), `health` = 3대 건강 수칙(수면 위생·혈당 스파이크·위장 보호) + 수면·생체리듬 + 위장·혈당·피로 + **필수 영양제(마그네슘·비타민D) 신설**.
+- **🧮 칼로리 계산기(calc)** — 성별(남/여) · 몸무게(기본 75kg, 30~200) · 활동량(교대·현장직/일반 사무직) · 목표(다이어트 −400/유지/벌크업 +250). 출력 = 목표 하루 칼로리 · 단백질 · 지방 · 탄수화물 + `닭가슴살 100g 약 N팩 + 햇반 210g 약 N공기 기준` 한 줄 + 한 끼 단백질 힌트.
+  - 계산식 — 유지 = 체중 × 33(남·현장)/30(남·사무·여·현장)/27(여·사무), 단백질 = 체중 × 2.0(감량)·1.8(유지·증량), 지방 = 체중 × 0.8, 탄수 = (목표 − 단백질×4 − 지방×9) ÷ 4, **탄수 50g 하한선**(걸리면 화면 칼로리를 매크로 합계로 올려 표시하고 사유를 적음).
+  - 입력값은 `state.calc`로 기존 `localStorage`(`kingyongko_shift_v1`)에 저장 — 다시 열어도 유지, `normalizeCalc()`가 범위 밖 값을 75kg/기본 옵션으로 되돌림. 카드 아래 `계산 공식 — 직접 검산용` 아코디언 추가.
+- `app.css` v2.5 블록 31줄(`.calc-card/.calc-row/.calc-out/.calc-kcal/.calc-macros/.calc-line/.calc-note`) 추가 — 테마 3종 변수만 사용.
+- `?v=2.5.0`(index.html 9곳) · `sw.js` `VERSION = '2.5.0'` / `CACHE = yongko-shift-v2.5.0` · 하단 표기 `교대핏 v2.5.0`(3곳). README 상단 버전·v2.5 절 추가.
+- 배포: 커밋 `7dacde2` → Pages `built`. 검수(2026-11-27 04:22 KST): 라이브 HTTP 200 — `/`·`/index.html` 70,626B, `app.css?v=2.5.0` 58,406B, `app.js?v=2.5.0` 121,773B, `sw.js` 2,970B, `manifest.json` 930B, `icon-192.png` 39,476B. **MD5 로컬=라이브 6/6 일치** — `index.html` `4e0c8345`, `app.css` `abf1747c`, `app.js` `0fcb021c`, `sw.js` `849bf1ed`, `manifest.json` `f421ce74`, `icon-192.png` `e9bedde1`.
+- 라이브 콘텐츠 — `data-gcat` 칩 6개(`all`·`ebook`·`qa`·`run`·`health`·`calc`), `gblock` 7개, `calcCard`/`calcWeight`/`calcLine` 존재, `app.js`에 `GCATS = ['all','ebook','qa','run','health','calc']`·`renderCalc`/`calcResult`/`CALC_CARB_FLOOR` 12곳, `sw.js` `VERSION = '2.5.0'`, `index.html` 버전문자열 `2.5.0` 9곳·`2.4.1` 0곳.
+- JS 문법: `esprima.parseScript` 통과(`app.js` 121,773B · `sw.js`) — node 없음. CSS 중괄호 564/564, HTML 태그 밸런스 오류 0건. 계산값은 같은 식을 파이썬으로 옮겨 검산(남 75kg 현장 유지 2,480kcal·P135/F60/C349 / 다이어트 2,080·P150/F60/C234 / 여 50kg 사무 다이어트 960kcal·P100/F40/C50(하한선 발동)). **Playwright 미실시** — 브리프 지시(한도 절약, 정적 검사+라이브 HTTP로 대체).
 
 ## v2.4.1 (2026-11-27) — 24h 타임라인 제거
 - **가이드에서 24h 타임라인 삭제** — 카테고리 칩 `🕒 24h 타임라인` 제거(칩 5개 → 4개: `전체 | 📕 전자책 핵심 | ❓ Q&A 백과 | 🏃 러닝·건강`), `index.html`의 `<div class="gblock" data-cat="timeline">` 블록(주간·야간·오프·3교대 전환 4개 아코디언, 6,910B) 통째로 삭제, 가이드 날짜바 설명 문구에서도 '24시간 타임라인' 뺌.
