@@ -2661,7 +2661,8 @@
     });
 
     /* 근무 배지 색깔 — 색 칩 원탭 / 기본값 초기화 */
-    $('badgePick').addEventListener('click', function (e) {
+    var bpBox = $('badgePick');
+    if (bpBox) bpBox.addEventListener('click', function (e) {
       var b = e.target.closest('[data-bc]');
       if (!b || b.disabled) return;
       var code = b.getAttribute('data-bc');
