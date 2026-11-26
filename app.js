@@ -1260,6 +1260,17 @@
       (c.nt ? '<span class="co-nt">' + esc(c.nt) + '</span>' : '') +
       '</button>';
   }
+  /* 회사 추가 요청 버튼 — 메일(nyk542@naver.com) · 인스타 DM(@kingyongko) */
+  var CO_ASK_MAIL = 'mailto:nyk542@naver.com?subject=%5B%EA%B5%90%EB%8C%80%ED%95%8F%5D%20%ED%9A%8C%EC%82%AC%20%EA%B7%BC%EB%AC%B4%ED%91%9C%20%EC%B6%94%EA%B0%80%20%EC%9A%94%EC%B2%AD&body=%ED%9A%8C%EC%82%AC%EB%AA%85%3A%20%0A%EA%B5%90%EB%8C%80%20%ED%98%95%ED%83%9C(%EC%98%88%3A%204%EC%A1%B02%EA%B5%90%EB%8C%80)%3A%20%0A%EA%B7%BC%EB%AC%B4%20%EC%88%9C%EC%84%9C(%EC%98%88%3A%20%EC%A3%BC%C2%B7%EC%A3%BC%C2%B7%ED%9C%B4%C2%B7%ED%9C%B4%C2%B7%EC%95%BC%C2%B7%EC%95%BC%C2%B7%ED%9C%B4%C2%B7%ED%9C%B4)%3A%20%0A%EA%B7%BC%EB%AC%B4%20%EC%8B%9C%EA%B0%84%3A%20';
+  function coAskHTML(withLead) {
+    return '<div class="co-ask">' +
+      (withLead ? '<div class="co-ask-t">찾는 회사가 없나요? 회사명과 근무 순서를 보내주시면 표에 추가해 드립니다</div>' : '') +
+      '<div class="co-ask-row">' +
+        '<a class="co-ask-b" href="' + CO_ASK_MAIL + '">📧 메일로 회사 추가 요청</a>' +
+        '<a class="co-ask-b ig" href="https://www.instagram.com/kingyongko/" target="_blank" rel="noopener">📸 인스타 DM 요청 (@kingyongko)</a>' +
+      '</div>' +
+    '</div>';
+  }
   function renderCompanyBlock(scope) {
     var s = coState[scope];
     var chipsEl = $(scope === 'settings' ? 'coChips' : 'setupCoChips');
@@ -1292,7 +1303,7 @@
     }
     var rows = coResults(s);
     if (!rows.length) {
-      listEl.innerHTML = '<div class="co-hint">검색 결과가 없습니다. 다른 업종이나 다른 이름으로 찾아보세요.</div>';
+      listEl.innerHTML = '<div class="co-hint">검색 결과가 없습니다. 다른 업종이나 다른 이름으로 찾아보세요.<br><b>없는 회사는 아래로 바로 요청할 수 있어요</b></div>' + coAskHTML(false);
       return;
     }
     listEl.innerHTML = '<div class="co-cnt">' + rows.length + '곳</div>' +

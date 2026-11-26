@@ -1,5 +1,5 @@
-/* 교대핏 service worker v2.2 — 앱 껍데기 캐시 (오프라인 실행용) */
-var CACHE = 'yongko-shift-v2.2.0';
+/* 교대핏 service worker v2.2.1 — 앱 껍데기 캐시 (오프라인 실행용) */
+var CACHE = 'yongko-shift-v2.2.1';
 var ASSETS = [
   './',
   './index.html',
