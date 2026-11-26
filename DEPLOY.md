@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.2`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.3`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,15 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.3 (2026-11-27) — 설정 탭 🎨 근무 배지 색깔
+- **`index.html`** — `설정 → 화면 테마` 카드 바로 아래(내 회사 찾기 위)에 `🎨 근무 배지 색깔` `sec-head` + `.card`(#badgePick) + `.help` 추가. 버전: `?v=2.5.3`(6곳: apple-touch-icon·favicon-32·icon-192·app.css·brand-mark·app.js) · 하단 표기 `교대핏 v2.5.3`(3곳) · `?v=2.5.2` 0건(남은 `2.5.2` 1건은 계산기 이동을 설명하는 v2.5.2 이력 주석).
+- **`app.js`** — `BADGE_PALETTE` 7색(파랑 `#4C8DFF`/`#1A63D8` · 하늘 `#38BDF8`/`#0284C7` · 보라 `#B18CFF`/`#6B45D6` · 남색 `#7B8BFF`/`#3B3FA8` · 초록 `#35D07F`/`#0E8A5E` · 주황 `#FFA24C`/`#BE6600` · 코랄 `#FF6B81`/`#C4213C` — 앞=다크·네이비, 뒤=화이트) · `BADGE_CODES=['D','A','N','O']` · `state.badgeColors`(DEFAULTS + `load()`의 `normalizeBadgeColors`, 모르는 id는 `''`=기본색) · `applyBadgeColors()`가 `document.documentElement.style`에 `--d/--d-rgb`(등 4종)를 set/removeProperty · `renderBadgePick()`(4행 × 7색 + 행별 `기본값` 버튼, 배지 미리보기는 `var(--d)` 등으로 자동) · `applyTheme()`에서 `applyBadgeColors()` → `setShiftVars()` 순서로 호출(테마 바뀌면 톤 자동 교체) · `#badgePick` 클릭 위임 → `save()` + `applyBadgeColors()` + `setShiftVars()` + `renderBadgePick()` + `renderCal/renderLog/renderToday` + 토스트 · PNG는 `imgPalette()`의 `imgShiftColor(code,…)`가 팔레트에서 직접 계산(=`getComputedStyle` 의존 없이 확실히 반영).
+- **`app.css`** — `.badge-pick/.bp-row/.bp-head/.bp-chip(.c-d/.c-a/.c-n/.c-o)/.bp-name/.bp-val/.bp-reset/.bp-colors/.bp-sw(.on ✓표시)` 17개 규칙 추가. 색 칩은 `--sw` 인라인 값으로 칠하고 선택 시 `box-shadow` 링.
+- **`sw.js`** — `VERSION = '2.5.3'` · `CACHE = 'yongko-shift-v2.5.3'`(리터럴).
+- 배포: 커밋 `774b0cc`(기능) → `c412b48`(sw CACHE 리터럴) → Pages `built`. 검수(2026-11-27 05:00 KST): 라이브 HTTP 200 — `/`·`/index.html` 70,925B, `app.js?v=2.5.3` 128,124B, `app.css?v=2.5.3` 60,183B, `sw.js` 3,009B, `manifest.json` 930B, `icon-192.png` 39,476B. **MD5 로컬=라이브 6/6 일치** — `index.html` `d4f37571`, `app.js` `c0c66865`, `app.css` `8c4eaadd`, `sw.js` `1fa301ab`, `manifest.json` `f421ce74`, `icon-192.png` `e9bedde1`.
+- 라이브 구조 — `#badgePick` 1개(설정 탭, `#themePick` 뒤·`#coInput` 앞), `BADGE_PALETTE`·`renderBadgePick`·`badgeColors` 존재, 팔레트 id 7개(`blue`·`sky`·`purple`·`navy`·`green`·`orange`·`coral`), `.bp-` CSS 17건, `sw.js` `VERSION='2.5.3'`/`CACHE='yongko-shift-v2.5.3'`.
+- JS 문법: `esprima.parseScript` 통과(`app.js` 128,124B · `sw.js` 3,009B). HTML 태그 밸런스 오류 0건(section 5/5), CSS 중괄호 583/583. **Playwright 미실시** — 브리프 지시(문법·구조 검사 + `git push` + `curl` HTTP·MD5로 대체).
 
 ## v2.5.2 (2026-11-27) — 칼로리 계산기를 기록 탭 맨 위로 이동
 - **`index.html`** — `#tab-log`의 날짜바 바로 아래(이달 누적 러닝/오운완 `#logStats` 위)에 `🧮 내 탄단지·칼로리` `sec-head` + `#calcCard` 카드 + `계산 공식 — 직접 검산용` 아코디언을 통째로 이동. 기존 `gblock[data-cat="calc"]` 래퍼는 벗기고 내부만 2칸 dedent. ID 10개(`calcSex`·`calcWeight`·`calcAct`·`calcGoal`·`calcKcal`·`calcP`·`calcF`·`calcC`·`calcLine`·`calcSub`)와 `calcNote` 그대로 — 기능·저장값(`state.calc`) 변경 없음.
