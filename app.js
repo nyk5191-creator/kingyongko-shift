@@ -28,6 +28,9 @@
            · 입력값은 state.calc로 localStorage 저장(다시 열어도 유지) · 탄수 50g 하한선 보호
    v2.5.2: 계산기를 가이드 탭에서 기록 탭 맨 위로 이동 — 가이드 'calc' 칩·블록 제거(칩 5개)
            · 저장된 guideCat='calc'는 'all'로 폴백 · renderTab('log')에서 renderCalc() 호출
+   v2.5.3: 설정 탭 근무 배지 색깔 커스텀 — 주·오·야·휴 4종 각각 7색 원탭 + '기본값' 초기화
+           · state.badgeColors(localStorage) · html의 --d/--a/--n/--o(+rgb)를 덮어써서
+             달력·전체 조·오늘 카드·근무표 PNG까지 실시간 반영 · 화이트 테마는 진한 톤으로 자동 교체
    =================================================================== */
 (function () {
   'use strict';
@@ -134,6 +137,20 @@
   /* 근무 색은 테마마다 CSS 변수(--d/--a/--n/--o + *-rgb)에 들어 있으니 JS는 이름만 안다 */
   var SHIFT_VAR = { D: '--d', A: '--a', N: '--n', O: '--o' };
   var SHIFT_RGB = { D: '--d-rgb', A: '--a-rgb', N: '--n-rgb', O: '--o-rgb' };
+
+  /* 근무 배지 색깔 (v2.5.3) — 설정 탭에서 고르는 7가지 색.
+     dark  = 다크·네이비 배경에서 잘 보이는 밝은 톤
+     light = 화이트 배경에서 잘 보이는 진한 톤 (테마에 맞춰 자동 교체) */
+  var BADGE_PALETTE = [
+    { id: 'blue',   name: '파랑', dark: '#4C8DFF', light: '#1A63D8' },
+    { id: 'sky',    name: '하늘', dark: '#38BDF8', light: '#0284C7' },
+    { id: 'purple', name: '보라', dark: '#B18CFF', light: '#6B45D6' },
+    { id: 'navy',   name: '남색', dark: '#7B8BFF', light: '#3B3FA8' },
+    { id: 'green',  name: '초록', dark: '#35D07F', light: '#0E8A5E' },
+    { id: 'orange', name: '주황', dark: '#FFA24C', light: '#BE6600' },
+    { id: 'coral',  name: '코랄', dark: '#FF6B81', light: '#C4213C' }
+  ];
+  var BADGE_CODES = ['D', 'A', 'N', 'O'];
 
   var PRESETS = [
     {
@@ -633,6 +650,7 @@
     coachOpen: false,
     guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run/health (v2.5.2: calc 제거) */
     calc: { sex: 'm', weight: 75, act: 'shift', goal: 'keep' },   /* v2.5 탄단지·칼로리 계산기 입력값 */
+    badgeColors: { D: '', A: '', N: '', O: '' },   /* v2.5.3 근무 배지 색 — '' = 테마 기본색, 그 외 BADGE_PALETTE id */
     payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
@@ -659,6 +677,7 @@
       coachOpen: s.coachOpen === true,
       guideCat: GCATS.indexOf(s.guideCat) >= 0 ? s.guideCat : 'all',
       calc: normalizeCalc(s.calc),
+      badgeColors: normalizeBadgeColors(s.badgeColors),
       payday: (function () {
         var p = s.payday;
         if (p === undefined || p === null) return DEFAULTS.payday;
@@ -692,6 +711,28 @@
       out.anchor = addDays(todayISO(), -back);
     }
     return out;
+  }
+
+  /* 근무 배지 색 정리 — 아는 색 id만 남기고 나머지는 기본색('') */
+  function normalizeBadgeColors(b) {
+    b = (b && typeof b === 'object') ? b : {};
+    var out = {};
+    BADGE_CODES.forEach(function (code) {
+      out[code] = paletteOf(b[code]) ? b[code] : '';
+    });
+    return out;
+  }
+  function paletteOf(id) {
+    for (var i = 0; i < BADGE_PALETTE.length; i++) {
+      if (BADGE_PALETTE[i].id === id) return BADGE_PALETTE[i];
+    }
+    return null;
+  }
+  function hexRgb(hex) {
+    var h = String(hex || '').replace('#', '');
+    if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    if (h.length !== 6) return '0,0,0';
+    return parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16);
   }
 
   /* 계산기 입력값 정리 — 성별/활동량/목표는 정해진 값만, 몸무게는 30~200kg */
@@ -887,9 +928,61 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', themeMeta(t).bg);
     if (persist) { state.theme = t; save(); }
-    /* 테마가 바뀌면 CSS 변수 값도 바뀌므로 근무 색을 다시 읽어 준다 */
+    /* 테마가 바뀌면 CSS 변수 값도 바뀌므로 근무 색을 다시 읽어 준다.
+       고른 배지 색이 있으면 테마에 맞는 톤으로 다시 덮어쓴 뒤 읽어야 한다. */
+    applyBadgeColors();
     setShiftVars(myShift(todayISO()));
     renderThemePick();
+    renderBadgePick();
+  }
+
+  /* 고른 배지 색을 html 인라인 변수로 덮어쓴다 — CSS·SVG·달력·전체 조·오늘 카드·PNG 캔버스까지
+     모두 var(--d/--a/--n/--o)를 쓰므로 여기 한 곳만 바꾸면 전체에 실시간 반영된다.
+     '기본색'이면 인라인 변수를 지워 테마 CSS 값이 그대로 살아나게 한다. */
+  function applyBadgeColors() {
+    var root = document.documentElement;
+    var isLight = root.getAttribute('data-theme') === 'light';
+    BADGE_CODES.forEach(function (code) {
+      var p = paletteOf(state.badgeColors && state.badgeColors[code]);
+      if (!p) {
+        root.style.removeProperty(SHIFT_VAR[code]);
+        root.style.removeProperty(SHIFT_RGB[code]);
+        return;
+      }
+      var hex = isLight ? p.light : p.dark;
+      root.style.setProperty(SHIFT_VAR[code], hex);
+      root.style.setProperty(SHIFT_RGB[code], hexRgb(hex));
+    });
+  }
+
+  /* 설정 탭 — 근무 배지 색깔 고르기 (4종 × 7색 + 기본값) */
+  function renderBadgePick() {
+    var box = $('badgePick');
+    if (!box) return;
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    box.innerHTML = BADGE_CODES.map(function (code) {
+      var meta = SHIFT[code];
+      var picked = paletteOf(state.badgeColors[code]);
+      var sw = BADGE_PALETTE.map(function (p) {
+        var on = !!picked && picked.id === p.id;
+        var c = isLight ? p.light : p.dark;
+        return '<button class="bp-sw' + (on ? ' on' : '') + '" type="button"' +
+          ' data-bc="' + code + '" data-bcid="' + p.id + '"' +
+          ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
+          ' aria-label="' + meta.name + ' ' + p.name + '" title="' + p.name + '"' +
+          ' style="--sw:' + c + '"></button>';
+      }).join('');
+      return '<div class="bp-row">' +
+        '<div class="bp-head">' +
+          '<span class="bp-chip c-' + meta.cls + '">' + meta.badge + '</span>' +
+          '<span class="bp-name">' + meta.name + '</span>' +
+          '<span class="bp-val">' + (picked ? picked.name : '기본색') + '</span>' +
+          '<button class="bp-reset" type="button" data-bc="' + code + '" data-bcid=""' +
+            (picked ? '' : ' disabled') + '>기본값</button>' +
+        '</div>' +
+        '<div class="bp-colors">' + sw + '</div>' +
+      '</div>';
+    }).join('');
   }
   function renderThemePick() {
     var box = $('themePick');
@@ -1289,11 +1382,22 @@
       green: cssVar('--green', '#3DDC97'),
       run: cssVar('--run-ink', '#FFB877'),
       runRgb: cssVar('--run-rgb', '255,159,69'),
-      d: [cssVar('--d', '#4C8DFF'), cssVar('--d-bg', 'rgba(76,141,255,.15)')],
-      a: [cssVar('--a', '#FFA24C'), cssVar('--a-bg', 'rgba(255,162,76,.15)')],
-      n: [cssVar('--n', '#B18CFF'), cssVar('--n-bg', 'rgba(177,140,255,.15)')],
-      o: [cssVar('--o', '#35D07F'), cssVar('--o-bg', 'rgba(53,208,127,.14)')]
+      d: imgShiftColor('D', '#4C8DFF', '76,141,255', '.15'),
+      a: imgShiftColor('A', '#FFA24C', '255,162,76', '.15'),
+      n: imgShiftColor('N', '#B18CFF', '177,140,255', '.15'),
+      o: imgShiftColor('O', '#35D07F', '53,208,127', '.14')
     };
+  }
+  /* PNG 한 군데에서 쓰는 근무 색 [글자색, 배경색].
+     고른 배지 색(v2.5.3)이 있으면 CSS 변수 해석에 기대지 않고 직접 계산해 넣는다. */
+  function imgShiftColor(code, defHex, defRgb, alpha) {
+    var p = paletteOf(state.badgeColors && state.badgeColors[code]);
+    if (!p) {
+      return [cssVar(SHIFT_VAR[code], defHex), cssVar(SHIFT_VAR[code] + '-bg', 'rgba(' + defRgb + ',' + alpha + ')')];
+    }
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var hex = isLight ? p.light : p.dark;
+    return [hex, 'rgba(' + hexRgb(hex) + ',' + alpha + ')'];
   }
   function imgRound(ctx, x, y, w, h, r) {
     var rr = Math.min(r, w / 2, h / 2);
@@ -1905,8 +2009,9 @@
         '</span>' +
       '</button>';
 
-    /* 테마 */
+    /* 테마 · 근무 배지 색 */
     renderThemePick();
+    renderBadgePick();
 
     /* 조 이름 표기 + 조 칩 */
     var G = getGroups();
@@ -2553,6 +2658,26 @@
       if (id === state.theme) return;
       applyTheme(id, true);
       toast(themeMeta(id).name);
+    });
+
+    /* 근무 배지 색깔 — 색 칩 원탭 / 기본값 초기화 */
+    $('badgePick').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-bc]');
+      if (!b || b.disabled) return;
+      var code = b.getAttribute('data-bc');
+      var id = b.getAttribute('data-bcid') || '';
+      var p = paletteOf(id);
+      var next = p ? id : '';
+      if (state.badgeColors[code] === next) return;
+      state.badgeColors[code] = next;
+      save();
+      applyBadgeColors();
+      setShiftVars(myShift(todayISO()));
+      renderBadgePick();
+      renderCal();
+      renderLog();
+      renderToday();
+      toast(p ? (SHIFT[code].name + ' 배지 ' + p.name) : (SHIFT[code].name + ' 배지 기본색'));
     });
 
     /* 조 이름 표기 — 설정 탭과 첫 세팅 공통 */

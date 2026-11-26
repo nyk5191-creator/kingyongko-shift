@@ -870,6 +870,39 @@ input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 }
 .th-btn.on .th-name{color:var(--yellow-ink)}
 
+/* ---------- 설정: 근무 배지 색깔 (v2.5.3) ---------- */
+.badge-pick{display:flex;flex-direction:column;gap:14px}
+.bp-row:first-child{margin-top:1px}
+.bp-head{display:flex;align-items:center;gap:8px}
+.bp-chip{
+  width:30px;height:30px;flex:0 0 auto;border-radius:9px;
+  display:grid;place-items:center;font-size:13px;font-weight:800;letter-spacing:-.02em;
+  background:var(--card2);color:var(--muted);border:1px solid var(--line);
+}
+.bp-chip.c-d{background:var(--d-bg);color:var(--d);border-color:rgba(var(--d-rgb),.38)}
+.bp-chip.c-a{background:var(--a-bg);color:var(--a);border-color:rgba(var(--a-rgb),.38)}
+.bp-chip.c-n{background:var(--n-bg);color:var(--n);border-color:rgba(var(--n-rgb),.38)}
+.bp-chip.c-o{background:var(--o-bg);color:var(--o);border-color:rgba(var(--o-rgb),.38)}
+.bp-name{font-size:12.5px;font-weight:800;color:var(--txt);letter-spacing:-.02em}
+.bp-val{font-size:11px;font-weight:700;color:var(--muted);margin-left:auto}
+.bp-reset{
+  flex:0 0 auto;padding:5px 9px;border-radius:8px;font-size:10.5px;font-weight:800;
+  background:var(--card2);border:1px solid var(--line);color:var(--txt2);letter-spacing:-.02em;
+}
+.bp-reset:active{transform:scale(.96)}
+.bp-reset[disabled]{opacity:.42}
+.bp-colors{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:9px}
+.bp-sw{
+  position:relative;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.10);
+  background:var(--sw,#888);padding:0;transition:transform .12s,box-shadow .15s;
+}
+.bp-sw:active{transform:scale(.94)}
+.bp-sw.on{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--sw,#888)}
+.bp-sw.on::after{
+  content:"✓";position:absolute;inset:0;display:grid;place-items:center;
+  color:#fff;font-size:13px;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.55);
+}
+
 /* ---------- 설정: 조 이름 표기 (1·2·3·4 / A·B·C·D) ---------- */
 .seg.small{margin-bottom:0}
 .seg.small .seg-b{font-size:11.5px;padding:7px 0}
