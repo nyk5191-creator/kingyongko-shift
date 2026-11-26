@@ -1,5 +1,5 @@
 /* ===================================================================
-   교대핏 v2.4.1 — 교대근무 + 헬스·식단 코칭 PWA
+   교대핏 v2.5.0 — 교대근무 + 헬스·식단 코칭 PWA
    순수 JS · localStorage · 단일 폴더 배포용
    v2  : 가이드 탭 · 오늘 내 근무 원탭 역산 · 2026~2027 공휴일 · 러닝 기록
    v2.1: 화면 테마 3종 · A·B·C·D조 표기 · 조 순환 순서(기본 A→C→D→B)
@@ -23,6 +23,9 @@
            · 심박수 존 러닝(Zone 2/4) · 교대근무 3대 건강 수칙 · 오늘 탭 코칭에서 가이드 바로가기
    v2.4.1: 24h 타임라인 섹션·카테고리 칩 제거(가이드 단순화) — 저장된 guideCat='timeline'은 'all'로 폴백
            · 오늘 탭 코칭 바로가기는 📕 전자책 핵심 · ❓ Q&A 백과 2개
+   v2.5.0: 가이드 칩 6개 — 🏃 러닝(run) / 🩺 건강·수면(health) 분리 · 🧮 칼로리 계산기(calc) 신설
+           · 계산기: 성별·몸무게·활동량·목표 → 목표칼로리·단백질·지방·탄수 + 닭가슴살/햇반 환산 한 줄
+           · 입력값은 state.calc로 localStorage 저장(다시 열어도 유지) · 탄수 50g 하한선 보호
    =================================================================== */
 (function () {
   'use strict';
@@ -51,8 +54,20 @@
     { id: 'navy', name: '네이비 블루', bg: '#0F172A', card: '#16213A', line: '#33456A', accent: '#FFD400' }
   ];
 
-  /* 가이드 카테고리 칩 (v2.4) — index.html의 #gcatChips / .gblock[data-cat]과 짝 */
-  var GCATS = ['all', 'ebook', 'qa', 'run'];   /* v2.4.1: 'timeline' 제거 */
+  /* 가이드 카테고리 칩 (v2.5) — index.html의 #gcatChips / .gblock[data-cat]과 짝 */
+  var GCATS = ['all', 'ebook', 'qa', 'run', 'health', 'calc'];
+
+  /* 탄단지·칼로리 계산기 (v2.5) — 기본값과 계수.
+     유지칼로리 = 체중 × kcal/kg(성별·활동량) · 목표 = 유지 + 감량(-400)/유지(0)/증량(+250)
+     단백질 = 체중 × 2.0(감량)/1.8(유지·증량) · 지방 = 체중 × 0.8 · 탄수 = 남은 칼로리 ÷ 4 */
+  var CALC_DEF = { sex: 'm', weight: 75, act: 'shift', goal: 'keep' };
+  var CALC_GOAL = { cut: -400, keep: 0, bulk: 250 };
+  var CALC_KCALKG = { m: { shift: 33, office: 30 }, f: { shift: 30, office: 27 } };
+  var CALC_PROT_G = { cut: 2.0, keep: 1.8, bulk: 1.8 };
+  var CALC_FAT_G = 0.8;
+  var CALC_CARB_FLOOR = 50;     /* 탄수 하한선(g) — 이 밑으로는 내리지 않는다 */
+  var CALC_P_CHICKEN = 23;      /* 닭가슴살 100g = 단백질 약 23g */
+  var CALC_C_RICE = 65;         /* 햇반 210g = 탄수 약 65g */
 
   /* 2026~2027 대한민국 법정공휴일 (대체공휴일 포함).
      근거: 「관공서의 공휴일에 관한 규정」 제2조·제3조, 우주항공청 월력요항(2026·2027).
@@ -614,7 +629,8 @@
     groupOrder: 'ACDB',    /* 조 순환 순서 — 킹용코 회사 기본 */
     theme: 'dark',
     coachOpen: false,
-    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run */
+    guideCat: 'all',       /* 가이드 카테고리 칩 — all/ebook/qa/run/health/calc */
+    calc: { sex: 'm', weight: 75, act: 'shift', goal: 'keep' },   /* v2.5 탄단지·칼로리 계산기 입력값 */
     payday: 25,            /* 0 = 없음 · 1~31 = 그 날(없는 달은 말일) · 'last' = 말일 */
     anchor: todayISO(),
     times: { D: ['07:00', '19:00'], A: ['14:00', '22:00'], N: ['19:00', '07:00'] },
@@ -640,6 +656,7 @@
       theme: ['dark', 'light', 'navy'].indexOf(s.theme) >= 0 ? s.theme : DEFAULTS.theme,
       coachOpen: s.coachOpen === true,
       guideCat: GCATS.indexOf(s.guideCat) >= 0 ? s.guideCat : 'all',
+      calc: normalizeCalc(s.calc),
       payday: (function () {
         var p = s.payday;
         if (p === undefined || p === null) return DEFAULTS.payday;
@@ -673,6 +690,19 @@
       out.anchor = addDays(todayISO(), -back);
     }
     return out;
+  }
+
+  /* 계산기 입력값 정리 — 성별/활동량/목표는 정해진 값만, 몸무게는 30~200kg */
+  function normalizeCalc(c) {
+    c = (c && typeof c === 'object') ? c : {};
+    var w = Math.round(Number(c.weight) * 10) / 10;
+    if (!isFinite(w) || w < 30 || w > 200) w = CALC_DEF.weight;
+    return {
+      sex: c.sex === 'f' ? 'f' : 'm',
+      weight: w,
+      act: c.act === 'office' ? 'office' : 'shift',
+      goal: (c.goal === 'cut' || c.goal === 'bulk') ? c.goal : 'keep'
+    };
   }
 
   /* 저장된 상태(s)만 보고 주기·조 수를 구한다 — load() 안에서 쓰려고 state에 의존하지 않게 분리 */
@@ -2060,7 +2090,7 @@
     else if (name === 'calendar') renderCal();
     else if (name === 'log') renderLog();
     else if (name === 'settings') renderSettings();
-    else if (name === 'guide') applyGuideCat(state.guideCat, { persist: false });
+    else if (name === 'guide') { applyGuideCat(state.guideCat, { persist: false }); renderCalc(); }
   }
 
   /* ---------------- 가이드 카테고리 칩 (v2.4) ---------------- */
@@ -2105,6 +2135,78 @@
   function openGuideCat(cat) {
     switchTab('guide');   /* switchTab이 맨 위로 올려준다 — 칩과 섹션 제목이 한 화면에 들어온다 */
     applyGuideCat(cat);
+  }
+
+  /* ---------------- 탄단지·칼로리 계산기 (v2.5) ---------------- */
+  function calcResult(c) {
+    var w = Math.min(200, Math.max(30, Number(c.weight) || CALC_DEF.weight));
+    var goal = (c.goal === 'cut' || c.goal === 'bulk') ? c.goal : 'keep';
+    var kcalKg = CALC_KCALKG[c.sex === 'f' ? 'f' : 'm'][c.act === 'office' ? 'office' : 'shift'];
+    var maintain = w * kcalKg;
+    var target = maintain + CALC_GOAL[goal];
+    var prot = Math.round(w * (CALC_PROT_G[goal] || 1.8));
+    var fat = Math.round(w * CALC_FAT_G);
+    var carbRaw = (target - prot * 4 - fat * 9) / 4;
+    var carb = Math.max(CALC_CARB_FLOOR, Math.round(carbRaw));
+    /* 화면 칼로리는 실제 매크로 합계 — 하한선이 걸리면 목표보다 조금 높아진다 */
+    var kcal = Math.round((prot * 4 + fat * 9 + carb * 4) / 10) * 10;
+    return {
+      maintain: Math.round(maintain / 10) * 10,
+      target: Math.round(target / 10) * 10,
+      kcal: kcal,
+      protein: prot,
+      fat: fat,
+      carb: carb,
+      floored: carbRaw < CALC_CARB_FLOOR,
+      goal: goal
+    };
+  }
+  function fmt1(v) { return (Math.round((Number(v) || 0) * 10) / 10).toFixed(1); }
+
+  function renderCalc() {
+    if (!$('calcCard')) return;
+    var c = normalizeCalc(state.calc);
+    var sex = $('calcSex'), act = $('calcAct'), goal = $('calcGoal');
+    if (sex) Array.prototype.forEach.call(sex.querySelectorAll('[data-csex]'), function (b) {
+      var on = b.getAttribute('data-csex') === c.sex;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (act) Array.prototype.forEach.call(act.querySelectorAll('[data-cact]'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-cact') === c.act);
+    });
+    if (goal) Array.prototype.forEach.call(goal.querySelectorAll('[data-cgoal]'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-cgoal') === c.goal);
+    });
+    var wi = $('calcWeight');
+    if (wi && document.activeElement !== wi) wi.value = c.weight;
+
+    var r = calcResult(c);
+    $('calcKcal').textContent = String(r.kcal).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    $('calcP').textContent = r.protein;
+    $('calcF').textContent = r.fat;
+    $('calcC').textContent = r.carb;
+
+    $('calcLine').innerHTML = '닭가슴살 100g 약 <b>' + fmt1(r.protein / CALC_P_CHICKEN) + '팩</b> + 햇반 210g 약 <b>' +
+      fmt1(r.carb / CALC_C_RICE) + '공기</b> 기준';
+    $('calcSub').innerHTML = '단백질은 한 끼 ' + Math.round(r.protein / 4) + 'g씩 4끼로 나누고, 지방은 계란·견과·올리브유로 채우면 맞습니다';
+
+    var note = $('calcNote');
+    var msg = '';
+    if (r.floored) {
+      msg = '탄수 하한선 <b>' + CALC_CARB_FLOOR + 'g</b>을 지키느라 목표보다 <b>' + (r.kcal - r.target) +
+        'kcal</b> 높게 잡았습니다. 이만큼은 빼지 않는 게 근손실·무기력이 없는 선입니다.';
+    } else if (r.goal === 'cut') {
+      msg = '유지칼로리 <b>' + r.maintain + 'kcal</b>에서 400kcal만 뺐습니다. 주 0.5kg 넘게 빠지면 단백질은 그대로 두고 탄수를 20~30g 올리세요.';
+    } else if (r.goal === 'bulk') {
+      msg = '유지칼로리 <b>' + r.maintain + 'kcal</b> +250. 한 달 1~2kg이 근육이 붙는 최대 속도입니다. 더 빨리 늘면 지방입니다.';
+    } else {
+      msg = '유지칼로리 <b>' + r.maintain + 'kcal</b> 그대로. 2주 평균 체중이 ±1kg 안이면 이 값이 맞습니다.';
+    }
+    if (note) {
+      note.innerHTML = msg;
+      note.hidden = !msg;
+    }
   }
   function renderAll() {
     renderTop();
@@ -2312,6 +2414,32 @@
       }
     });
     $('btnGuideInstall').addEventListener('click', function () { showInstallGuide(); });
+
+    /* 탄단지·칼로리 계산기 (v2.5) — 성별·활동량·목표 칩과 몸무게 입력 */
+    document.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-csex],[data-cact],[data-cgoal]') : null;
+      if (!b || !b.closest('#calcCard')) return;
+      state.calc = normalizeCalc(state.calc);
+      if (b.hasAttribute('data-csex')) state.calc.sex = b.getAttribute('data-csex') === 'f' ? 'f' : 'm';
+      else if (b.hasAttribute('data-cact')) state.calc.act = b.getAttribute('data-cact') === 'office' ? 'office' : 'shift';
+      else state.calc.goal = b.getAttribute('data-cgoal');
+      save();
+      renderCalc();
+    });
+    if ($('calcWeight')) {
+      $('calcWeight').addEventListener('input', function () {
+        var v = Number(this.value);
+        state.calc = normalizeCalc(state.calc);
+        if (isFinite(v) && v >= 30 && v <= 200) state.calc.weight = Math.round(v * 10) / 10;
+        save();
+        renderCalc();
+      });
+      $('calcWeight').addEventListener('change', function () {
+        state.calc = normalizeCalc(state.calc);   /* 범위 밖·빈 값은 75kg로 되돌림 */
+        save();
+        renderCalc();
+      });
+    }
 
     /* 달력 */
     /* 달력 보기 전환 — 내 달력 / 전체 조 */
@@ -2676,6 +2804,7 @@
     renderCal();
     renderLog();
     renderSettings();
+    renderCalc();
     setupPWA();
     if (!state.setupDone) openSetup();
     /* 1분마다 근무 상태 갱신, 날짜가 바뀌면 전체 렌더 */
