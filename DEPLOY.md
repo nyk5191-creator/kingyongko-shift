@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.6`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.7`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,17 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.7 (2026-11-27) — 내 회사 찾기에 미래나노텍 추가
+- **회사 추가** — `미래나노텍`(`반도체 · 디스플레이 · 배터리` 칩). `CO_LIST.semi`에 `'미래나노텍|미래나노텍/나노텍'`을 `삼성디스플레이` 바로 뒤에 넣음. 회사 수 42곳 → **43곳**(`renderCompanyBlock` 주석 43으로 갱신, 화면 숫자는 `rows.length` 계산이라 자동).
+- **교대 형태는 업종 기본값과 달라 `CO_OVERRIDE`로 분기** — `CO_OVERRIDE['미래나노텍'] = { p: 'custom', cy: '주,주,주,주,휴,휴,야,야,야,야,휴,휴', cg: 3, t: HOURS_2C_PETRO, nt: '3조 2교대 · 주4·휴2·야4·휴2 (12일)' }`.
+  - 반도체 업종 기본값(`p:'4-3'` · `HOURS_3C` 06/14/22)을 쓰지 않고 **커스텀 주기 12일 · 3조**로 세팅. `applyCompany()`가 `presetId='custom'` → `state.custom=parseCycle(cy)`(12토큰 정상) → `customGroups=3`, `t`의 주 07:00~19:00 / 야 19:00~07:00를 `state.times`에 적용한다. `cg:3`이면 `getGroups()`=3·조 순서 `A·B·C`, 오프셋 `step = round(12/3) = 4` → A 0 / C 4 / B 8(= A가 주1일 때 B는 야1~4, C는 휴)이라 세 조가 4일씩 정확히 물린다.
+  - 조 표기는 업종 기본값 `s:'num'` 그대로 → 카드 `1·2·3조`(실제로는 1·2·3조 사용 현장이 많아 `CO_OVERRIDE`에서 바꾸지 않음). 별칭 `나노텍`으로도 검색(`coNorm` 소문자 정규화).
+  - 카드 한 줄 안내(`nt`)에 교대 이름과 주기를 같이 적어, 소제목이 `커스텀 주기 · 1·2·3조`로만 보이는 걸 보완.
+- 버전: `?v=2.5.7`(index.html 9곳 — 아이콘 3·app.css·brand-mark·app.js·하단 표기 3) · `sw.js` `VERSION = '2.5.7'` / `CACHE = 'yongko-shift-v2.5.7'` · 하단 표기 `교대핏 v2.5.7` 3곳 · README 제목·폴더 트리·v2.5.7 절·기능 `43곳`.
+- 배포 커밋 `2833181` → Pages `built`(`2026-11-27T14:17:31Z`). 라이브 HTTP **200 7/7** + **MD5 로컬=라이브 7/7 일치** — `/`·`/index.html` 71,579B `33603b63`, `app.js?v=2.5.7` 136,294B `0261dab4`, `app.css?v=2.5.7` 62,122B `1f09a78c`, `sw.js` 3,009B `82467fee`, `manifest.json` 930B `f421ce74`, `icon-192.png` 39,476B `e9bedde1`.
+- 라이브 문자열 확인 — `app.js` `'미래나노텍|미래나노텍/나노텍'` 1건 · `cy: '주,주,주,주,휴,휴,야,야,야,야,휴,휴'` 1건 · `3조 2교대 · 주4·휴2·야4·휴2 (12일)` 1건 · `43곳` 1건, `sw.js` `VERSION='2.5.7'`/`CACHE='yongko-shift-v2.5.7'` 1건·`2.5.6` 0건, `index.html` `2.5.7` 9곳·`2.5.6` 0건·`교대핏 v2.5.7` 3곳.
+- 정적 검사: `esprima.parseScript` 통과(`app.js` 121,326자 · `sw.js` 2,654자), HTML 태그 밸런스 오류 0건, CSS 중괄호 593/593. **Playwright 미실시** — 브리프 지시(한도 절약: 문법 + 라이브 HTTP·MD5로 마무리). 화면 픽셀 확인은 사용자 눈으로 필요.
 
 ## v2.5.6 (2026-11-27) — 내 회사 찾기에 삼성전기 추가 + 4조 2교대 표기 정리
 - **회사 추가** — `삼성전기`(`반도체 · 디스플레이 · 배터리` 칩). `CO_LIST.semi`에 `'삼성전기|삼성전기/semco'`를 `삼성전자 DS` 바로 뒤에 넣음 → 업종 기본값 그대로 **4조 3교대 · 1·2·3·4조 · 주 06:00~14:00 / 오 14:00~22:00 / 야 22:00~06:00**(`HOURS_3C`). 별칭 `semco`(소문자 검색은 `coNorm`이 맞춤). `CO_OVERRIDE['삼성전기'] = { nt: '수원은 주간·2조 2교대도 있음' }` → 회사 카드 한 줄 안내. 회사 수 41곳 → **42곳**(`renderCompanyBlock` 주석도 42로 갱신, 화면 숫자는 `rows.length` 계산이라 자동).
