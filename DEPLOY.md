@@ -14,7 +14,7 @@ cp ../../downloads/kingyongko_shift_app/*.{html,css,js,json,png} . 2>/dev/null  
 git add -A && git commit -m "feat: ..." && git push origin main
 ```
 - 푸시 후 30~60초면 자동 반영(`gh api repos/nyk5191-creator/kingyongko-shift/pages/builds/latest --jq .status` 로 `built` 확인).
-- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.4`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
+- `sw.js`를 수정했다면 `CACHE` 값을 반드시 올린다(현재 `yongko-shift-v2.5.6`). 안 올리면 기존 사용자 홈 화면 앱이 옛 캐시를 계속 볼 수 있음.
 - 검증: `curl -s -o /dev/null -w '%{http_code}' https://nyk5191-creator.github.io/kingyongko-shift/` → 200, 그리고 `index.html`/`app.js`/`app.css`/`manifest.json`/`icon-192.png` 모두 200.
 
 ## Pickle GitHub 앱(@nyk5191-creator) 권한 — 2026-11-26 기준
@@ -26,6 +26,15 @@ git add -A && git commit -m "feat: ..." && git push origin main
   - `workflows` → `.github/workflows/*.yml` 푸시 불가: `refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`
   - 그래서 이번엔 **사용자가 저장소 생성 + Settings → Pages 토글**을 직접 했다.
   - `PATCH /repos/...`(homepage·topics)도 403 — 저장소 소개 링크는 사용자가 직접 넣어야 함.
+
+## v2.5.6 (2026-11-27) — 내 회사 찾기에 삼성전기 추가 + 4조 2교대 표기 정리
+- **회사 추가** — `삼성전기`(`반도체 · 디스플레이 · 배터리` 칩). `CO_LIST.semi`에 `'삼성전기|삼성전기/semco'`를 `삼성전자 DS` 바로 뒤에 넣음 → 업종 기본값 그대로 **4조 3교대 · 1·2·3·4조 · 주 06:00~14:00 / 오 14:00~22:00 / 야 22:00~06:00**(`HOURS_3C`). 별칭 `semco`(소문자 검색은 `coNorm`이 맞춤). `CO_OVERRIDE['삼성전기'] = { nt: '수원은 주간·2조 2교대도 있음' }` → 회사 카드 한 줄 안내. 회사 수 41곳 → **42곳**(`renderCompanyBlock` 주석도 42로 갱신, 화면 숫자는 `rows.length` 계산이라 자동).
+  - 근거(2026-11-27 `web_search`) — 삼성전기 채용공고 3건 모두 "4조 3교대 · 06:00~14:00 / 14:00~22:00 / 22:00~06:00", 수원은 "주전 혹은 2조2교대", 세종·부산은 4조 3교대. 2022-07-20 뉴스핌 "삼성전기, 전 사업장 생산직 3조2교대 → 4조3교대 도입". 5근2휴·5근1휴 세부 로테이션은 공장마다 달라 앱의 표준 8일 주기(주·주·오·오·야·야·휴·휴)를 그대로 씀 — [설정]에서 수정 가능.
+- **4조 2교대 프리셋 표기** — `PRESETS['4-2'].text` `주·주·오·오·야·야·오·오 (8일)` → **`주·주·휴·휴·야·야·휴·휴 (8일)`**, `legend` `오 = 오프(휴무) · 킹용코 기본` → `휴 = 휴무 · 킹용코 기본`. 가이드 탭 `4조 2교대` 표기(v2.5.1에 이미 휴로 바뀜)와 일치.
+- 버전: `?v=2.5.6`(index.html 9곳 — 아이콘 3·app.css·brand-mark·app.js·하단 표기 3) · `sw.js` `VERSION = '2.5.6'` / `CACHE = 'yongko-shift-v2.5.6'` · 하단 표기 `교대핏 v2.5.6` 3곳 · README 제목·폴더 트리·v2.5.6 절·기능 `42곳`.
+- 배포 커밋 `7655f84` → Pages `built`(`2026-11-27T11:05:12Z`). 라이브 HTTP **200 7/7** + **MD5 로컬=라이브 7/7 일치** — `/`·`/index.html` 71,579B `54bf8bd0`, `app.js?v=2.5.6` 135,822B `ce6dc269`, `app.css?v=2.5.6` 62,122B `1f09a78c`, `sw.js` 3,009B `69d8508f`, `manifest.json` 930B `f421ce74`, `icon-192.png` 39,476B `e9bedde1`.
+- 라이브 문자열 확인 — `app.js` `'삼성전기|삼성전기/semco'` 1건 · `'수원은 주간·2조 2교대도 있음'` 1건 · `text: '주·주·휴·휴·야·야·휴·휴 (8일)'` 1건 · 옛 `주·주·오·오·야·야·오·오` 0건 · `오 = 오프(휴무)` 0건, `sw.js` `VERSION='2.5.6'`/`CACHE='yongko-shift-v2.5.6'`, `index.html` `2.5.6` 9곳·`2.5.5` 0곳·`교대핏 v2.5.6` 3곳.
+- 정적 검사: `esprima.parseScript` 통과(`app.js` 135,822B · `sw.js` 3,009B), HTML 태그 밸런스 오류 0건, CSS 중괄호 593/593. **Playwright 미실시** — 브리프 지시(한도 절약: JS 문법 + 라이브 HTTP·MD5로 마무리). 화면 픽셀 확인은 사용자 눈으로 필요.
 
 ## v2.5.5 (2026-11-27) — 무료 방문 카운터(관리자 통계)
 - 카운터 — **`https://abacus.jasoncameron.dev`** (무료·무가입·키 불필요, CORS `*`, IP당 30req/10s). 네임스페이스 `kingyongko-shift`, 키 `total` / `d-YYYYMMDD`. `GET /hit/{ns}/{key}` = +1, `GET /get/{ns}/{key}` = 읽기(없는 키는 404).
